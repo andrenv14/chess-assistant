@@ -146,4 +146,5 @@ Exemplo de alteração de força:
 - [Evidências determinísticas da posição](docs/POSITION_FEATURES.md)
 - [Evidências por candidato para explicações](docs/EXPLANATION_EVIDENCE.md)
 - [Contrato seguro das explicações por LLM](docs/LLM_EXPLANATIONS.md)
+- [Adaptadores do Lichess e Chess.com](docs/SITE_ADAPTERS.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)
