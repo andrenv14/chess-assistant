@@ -17,7 +17,7 @@ Lichess adapter ───┘                         │
                                              ├─ Stockfish evaluator
                                              ├─ Maia-3 adapter (optional)
                                              ├─ opening/feature analysis
-                                             └─ external LLM API (planned)
+                                             └─ external LLM API
                                                         │
                                                         ▼
                                                 Electron desktop app
@@ -63,5 +63,7 @@ Lichess adapter ───┘                         │
 
 The current milestone has a working analysis API, runtime Stockfish profiles,
 snapshot transport, base move classification, offline opening lookup, position
-and candidate evidence, and an optional Maia-3 UCI boundary. Schema-validated
-LLM explanations and production-grade site adapters remain planned.
+and candidate evidence, a schema-validated LLM explanation boundary, and an
+optional Maia-3 UCI adapter. The initial OpenAI Responses API transport is
+implemented but still needs a user-provided key for a live end-to-end test.
+Production-grade site adapters remain planned.

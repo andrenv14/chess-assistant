@@ -9,6 +9,12 @@ from app.classification import InvalidPositionTransitionError
 from app.config import settings
 from app.engine import EngineUnavailableError, StockfishManager
 from app.evidence import build_analysis_evidence
+from app.explanations import (
+    ExplanationProviderError,
+    ExplanationService,
+    ExplanationValidationError,
+    OpenAIExplanationProvider,
+)
 from app.features import extract_position_features
 from app.hub import EventHub
 from app.logging_config import configure_logging, get_logger
@@ -21,6 +27,7 @@ from app.models import (
     ClassifyMoveRequest,
     EngineRole,
     EngineSettings,
+    ExplainedAnalysisResponse,
     HumanPredictionRequest,
     HumanPredictionResponse,
     MoveClassificationResponse,
@@ -35,6 +42,17 @@ configure_logging()
 logger = get_logger(__name__)
 manager = StockfishManager(settings.stockfish_path)
 maia_manager = MaiaManager(settings.maia3_path)
+explanation_service = (
+    ExplanationService(
+        OpenAIExplanationProvider(
+            api_key=settings.llm_api_key,
+            model=settings.llm_model,
+            base_url=settings.llm_api_base_url,
+        )
+    )
+    if settings.llm_api_key and settings.llm_model
+    else None
+)
 hub = EventHub()
 browser_event_adapter = TypeAdapter(BrowserEvent)
 
@@ -65,6 +83,8 @@ async def health() -> dict[str, object]:
         "opening_positions": opening_book.size,
         "maia3_available": maia_manager.available,
         "maia3_path": str(maia_manager.executable_path) if maia_manager.executable_path else None,
+        "llm_configured": explanation_service is not None,
+        "llm_model": settings.llm_model,
     }
 
 
@@ -76,6 +96,8 @@ async def get_settings() -> SettingsResponse:
         maia3_path=(
             str(maia_manager.executable_path) if maia_manager.executable_path else None
         ),
+        llm_configured=explanation_service is not None,
+        llm_model=settings.llm_model,
         profiles=manager.profiles,
     )
 
@@ -107,6 +129,35 @@ async def analyze_evidence(request: AnalyzeRequest) -> AnalysisEvidenceResponse:
     except Exception as exc:
         logger.exception("analysis_evidence_failed")
         raise HTTPException(status_code=500, detail=f"Evidence analysis failed: {exc}") from exc
+
+
+@app.post("/api/explain", response_model=ExplainedAnalysisResponse)
+async def explain_position(request: AnalyzeRequest) -> ExplainedAnalysisResponse:
+    if explanation_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM is not configured. Set LLM_API_KEY and LLM_MODEL.",
+        )
+    try:
+        analysis = await manager.analyze(request)
+        analysis = analysis.model_copy(update={"opening": opening_book.lookup_fen(request.fen)})
+        evidence = build_analysis_evidence(analysis)
+        explanation = await explanation_service.explain(evidence)
+        return ExplainedAnalysisResponse(evidence=evidence, explanation=explanation)
+    except EngineUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (ExplanationProviderError, ExplanationValidationError) as exc:
+        logger.warning(
+            "explanation_rejected",
+            extra={"event_data": {"reason": type(exc).__name__}},
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="LLM explanation was unavailable or invalid",
+        ) from exc
+    except Exception as exc:
+        logger.exception("explanation_failed")
+        raise HTTPException(status_code=500, detail="Explanation generation failed") from exc
 
 
 @app.post("/api/classify", response_model=MoveClassificationResponse)

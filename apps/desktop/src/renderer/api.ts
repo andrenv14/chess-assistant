@@ -6,6 +6,7 @@ import type {
   EngineRole,
   EngineSettings,
   EngineSettingsResponse,
+  ExplainedAnalysisResponse,
   HumanPredictionRequest,
   HumanPredictionResponse,
   MoveClassificationResponse,
@@ -48,6 +49,14 @@ export function analyzePosition(payload: AnalyzeRequest): Promise<AnalyzeRespons
 
 export function analyzeEvidence(payload: AnalyzeRequest): Promise<AnalysisEvidenceResponse> {
   return request("/api/evidence", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function explainPosition(payload: AnalyzeRequest): Promise<ExplainedAnalysisResponse> {
+  return request("/api/explain", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

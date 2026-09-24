@@ -17,7 +17,8 @@ sem depender das demais.
 - extensão Manifest V3 que transmite snapshots FEN ao `localhost`;
 - reconstrução e classificação do lance efetivamente jogado;
 - catálogo local CC0 do Lichess com identificação automática de abertura;
-- contrato pronto para a futura camada de explicações via API.
+- evidências determinísticas de posição e de cada candidato do Stockfish;
+- explicações estruturadas e validadas pela OpenAI Responses API.
 
 ## Arquitetura
 
@@ -106,6 +107,7 @@ marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 - `PUT /api/settings/{role}` — muda força durante a sessão;
 - `POST /api/analyze` — calcula melhores lances e respostas;
 - `POST /api/evidence` — análise Stockfish enriquecida com planos verificáveis;
+- `POST /api/explain` — explicação estruturada via API, quando configurada;
 - `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
 - `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
 - `POST /api/human-prediction` — candidatos humanos opcionais via Maia-3;
@@ -128,12 +130,11 @@ Exemplo de alteração de força:
 
 ## Próximos marcos
 
-1. explicações estruturadas via API com evidências do motor;
-2. classificadores determinísticos de tática, estrutura de peões,
+1. ampliar classificadores determinísticos de tática, estrutura de peões,
    segurança do rei e final;
-3. adaptadores de tabuleiro mais robustos, começando por Lichess Analysis;
-4. persistência de sessões e histórico de posições;
-5. empacotamento do backend e Stockfish com o app desktop.
+2. adaptadores de tabuleiro mais robustos, começando por Lichess Analysis;
+3. persistência de sessões e histórico de posições;
+4. empacotamento do backend e Stockfish com o app desktop.
 
 ## Documentação de engenharia
 
@@ -144,4 +145,5 @@ Exemplo de alteração de força:
 - [Integração opcional com Maia-3](docs/MAIA3.md)
 - [Evidências determinísticas da posição](docs/POSITION_FEATURES.md)
 - [Evidências por candidato para explicações](docs/EXPLANATION_EVIDENCE.md)
+- [Contrato seguro das explicações por LLM](docs/LLM_EXPLANATIONS.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)

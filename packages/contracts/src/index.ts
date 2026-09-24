@@ -16,6 +16,8 @@ export interface EngineSettingsResponse {
   stockfish_path: string | null;
   maia3_available: boolean;
   maia3_path: string | null;
+  llm_configured: boolean;
+  llm_model: string | null;
   profiles: Record<EngineRole, EngineSettings>;
 }
 
@@ -202,6 +204,25 @@ export interface AnalysisEvidenceResponse {
   analysis: AnalyzeResponse;
   position: PositionFeaturesResponse;
   candidates: CandidateEvidence[];
+}
+
+export interface CandidateExplanation {
+  uci: string;
+  headline: string;
+  explanation: string;
+  plan_steps: string[];
+  opponent_response: string;
+  watch_for: string | null;
+}
+
+export interface PositionExplanation {
+  position_summary: string;
+  candidates: CandidateExplanation[];
+}
+
+export interface ExplainedAnalysisResponse {
+  evidence: AnalysisEvidenceResponse;
+  explanation: PositionExplanation;
 }
 
 export interface BrowserPositionEvent {

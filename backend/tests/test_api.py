@@ -1,7 +1,9 @@
 import chess
 from fastapi.testclient import TestClient
 
-from app.main import app, maia_manager
+from app.explanations import ExplanationProviderError
+from app.main import app, maia_manager, manager
+from app.models import AnalyzeResponse, MoveAnalysis, PositionExplanation
 
 
 def test_health_and_settings_are_available_without_stockfish() -> None:
@@ -99,3 +101,98 @@ def test_position_features_do_not_require_an_engine() -> None:
     assert payload["phase"] == "opening"
     assert payload["material"]["balance_cp"] == 0
     assert payload["tactics"]["legal_move_count"] == 20
+
+
+def test_explanation_requires_configured_api(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.explanation_service", None)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/explain",
+            json={"fen": chess.STARTING_FEN, "actor": "user"},
+        )
+
+    assert response.status_code == 503
+    assert "LLM_API_KEY" in response.json()["detail"]
+
+
+def _analysis_for_starting_position() -> AnalyzeResponse:
+    return AnalyzeResponse(
+        fen=chess.STARTING_FEN,
+        actor="user",
+        advisor_role="user",
+        reply_role="opponent",
+        evaluation_cp=20,
+        evaluation_mate=None,
+        candidates=[
+            MoveAnalysis(
+                uci="g1f3",
+                san="Nf3",
+                score_cp=20,
+                mate=None,
+                pv_uci=["g1f3"],
+                pv_san=["Nf3"],
+                replies=[],
+            )
+        ],
+    )
+
+
+class StubExplanationService:
+    async def explain(self, evidence):
+        assert evidence.candidates[0].uci == "g1f3"
+        return PositionExplanation(
+            position_summary="Uma posição inicial equilibrada.",
+            candidates=[
+                {
+                    "uci": "g1f3",
+                    "headline": "Desenvolva o cavalo",
+                    "explanation": "O lance desenvolve uma peça.",
+                    "plan_steps": ["Prepare o roque."],
+                    "opponent_response": "O adversário também pode desenvolver.",
+                    "watch_for": None,
+                }
+            ],
+        )
+
+
+def test_explanation_returns_matching_evidence_and_prose(monkeypatch) -> None:
+    async def analyze(_request):
+        return _analysis_for_starting_position()
+
+    monkeypatch.setattr(manager, "analyze", analyze)
+    monkeypatch.setattr("app.main.explanation_service", StubExplanationService())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/explain",
+            json={"fen": chess.STARTING_FEN, "actor": "user"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["evidence"]["analysis"]["candidates"][0]["uci"] == "g1f3"
+    assert payload["explanation"]["candidates"][0]["uci"] == "g1f3"
+
+
+class FailingExplanationService:
+    async def explain(self, _evidence):
+        raise ExplanationProviderError("private provider details")
+
+
+def test_explanation_provider_failure_is_redacted(monkeypatch) -> None:
+    async def analyze(_request):
+        return _analysis_for_starting_position()
+
+    monkeypatch.setattr(manager, "analyze", analyze)
+    monkeypatch.setattr("app.main.explanation_service", FailingExplanationService())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/explain",
+            json={"fen": chess.STARTING_FEN, "actor": "user"},
+        )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "LLM explanation was unavailable or invalid"
+    assert "private provider details" not in response.text

@@ -65,6 +65,8 @@ class SettingsResponse(BaseModel):
     stockfish_path: str | None
     maia3_available: bool
     maia3_path: str | None
+    llm_configured: bool
+    llm_model: str | None
     profiles: dict[EngineRole, EngineSettings]
 
 
@@ -251,6 +253,32 @@ class AnalysisEvidenceResponse(BaseModel):
     analysis: AnalyzeResponse
     position: PositionFeaturesResponse
     candidates: list[CandidateEvidence]
+
+
+class CandidateExplanation(BaseModel):
+    uci: str
+    headline: str = Field(min_length=1, max_length=100)
+    explanation: str = Field(min_length=1, max_length=900)
+    plan_steps: list[str] = Field(min_length=1, max_length=4)
+    opponent_response: str = Field(min_length=1, max_length=600)
+    watch_for: str | None = Field(default=None, max_length=400)
+
+    @field_validator("plan_steps")
+    @classmethod
+    def validate_plan_steps(cls, value: list[str]) -> list[str]:
+        if any(not step.strip() or len(step) > 240 for step in value):
+            raise ValueError("plan steps must contain 1-240 characters")
+        return value
+
+
+class PositionExplanation(BaseModel):
+    position_summary: str = Field(min_length=1, max_length=900)
+    candidates: list[CandidateExplanation] = Field(max_length=5)
+
+
+class ExplainedAnalysisResponse(BaseModel):
+    evidence: AnalysisEvidenceResponse
+    explanation: PositionExplanation
 
 
 class BrowserPositionEvent(BaseModel):

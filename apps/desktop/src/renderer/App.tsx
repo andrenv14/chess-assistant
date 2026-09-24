@@ -7,6 +7,7 @@ import type {
   EngineSettingsResponse,
   HumanPredictionResponse,
   MoveClassificationResponse,
+  PositionExplanation,
 } from "@chess-assistant/contracts";
 import { logEvent } from "@chess-assistant/contracts";
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   analyzeEvidence,
   classifyMove,
+  explainPosition,
   getSettings,
   predictHumanMoves,
   updateSettings,
@@ -111,10 +113,13 @@ export function App() {
   const [candidateEvidence, setCandidateEvidence] = useState<CandidateEvidence[]>([]);
   const [humanView, setHumanView] = useState<HumanPredictionResponse | null>(null);
   const [lastMove, setLastMove] = useState<MoveClassificationResponse | null>(null);
+  const [explanation, setExplanation] = useState<PositionExplanation | null>(null);
   const [status, setStatus] = useState("Conectando ao backend…");
   const [busy, setBusy] = useState(false);
+  const [explaining, setExplaining] = useState(false);
   const previousBrowserFen = useRef<string | null>(null);
   const analysisRequestId = useRef(0);
+  const explanationRequestId = useRef(0);
 
   useEffect(() => {
     void getSettings()
@@ -156,10 +161,13 @@ export function App() {
 
   async function runAnalysis() {
     const requestId = ++analysisRequestId.current;
+    explanationRequestId.current += 1;
     setBusy(true);
+    setExplaining(false);
     setStatus("Analisando…");
     setHumanView(null);
     setCandidateEvidence([]);
+    setExplanation(null);
     try {
       const selfRole = actor === "user" ? "user" : "opponent";
       const opponentRole = actor === "user" ? "opponent" : "user";
@@ -201,6 +209,32 @@ export function App() {
     }
   }
 
+  async function runExplanation() {
+    if (!analysis || analysis.fen !== fen || analysis.actor !== actor) return;
+    const requestId = ++explanationRequestId.current;
+    setExplaining(true);
+    setStatus("Gerando explicação…");
+    try {
+      const result = await explainPosition({
+        fen: analysis.fen,
+        actor: analysis.actor,
+        include_evaluator: true,
+        include_replies: true,
+      });
+      if (requestId !== explanationRequestId.current) return;
+      setAnalysis(result.evidence.analysis);
+      setCandidateEvidence(result.evidence.candidates);
+      setExplanation(result.explanation);
+      setStatus("Explicação concluída");
+    } catch (error) {
+      if (requestId !== explanationRequestId.current) return;
+      logEvent("error", "explanation_failed", { component: "desktop" });
+      setStatus(error instanceof Error ? error.message : "Falha na explicação");
+    } finally {
+      if (requestId === explanationRequestId.current) setExplaining(false);
+    }
+  }
+
   async function saveProfile(role: EngineRole, value: EngineSettings) {
     const saved = await updateSettings(role, value);
     setSettings((current) =>
@@ -237,9 +271,24 @@ export function App() {
                 <option value="opponent">Oponente</option>
               </select>
             </label>
-            <button className="button" disabled={busy} onClick={() => void runAnalysis()}>
-              {busy ? "Calculando…" : "Analisar posição"}
-            </button>
+            <div className="control-buttons">
+              <button className="button" disabled={busy} onClick={() => void runAnalysis()}>
+                {busy ? "Calculando…" : "Analisar posição"}
+              </button>
+              <button
+                className="button button--secondary"
+                disabled={
+                  !analysis ||
+                  analysis.fen !== fen ||
+                  analysis.actor !== actor ||
+                  !settings?.llm_configured ||
+                  explaining
+                }
+                onClick={() => void runExplanation()}
+              >
+                {explaining ? "Explicando…" : "Explicar com IA"}
+              </button>
+            </div>
           </div>
 
           {lastMove && (
@@ -264,6 +313,12 @@ export function App() {
           )}
 
           <div className="moves">
+            {explanation && (
+              <article className="move explanation-summary">
+                <p className="eyebrow">LEITURA DA POSIÇÃO</p>
+                <p>{explanation.position_summary}</p>
+              </article>
+            )}
             {analysis?.opening && (
               <article className="move opening">
                 <p className="eyebrow">ABERTURA · {analysis.opening.eco}</p>
@@ -293,6 +348,7 @@ export function App() {
             )}
             {analysis?.candidates.map((move, index) => {
               const evidence = candidateEvidence[index];
+              const prose = explanation?.candidates[index];
               return (
                 <article className="move" key={move.uci}>
                   <div className="move__heading">
@@ -310,6 +366,25 @@ export function App() {
                       {evidence.plan_hints.map((hint) => (
                         <small key={hint}>{formatPlanHint(hint)}</small>
                       ))}
+                    </div>
+                  )}
+                  {prose?.uci === move.uci && (
+                    <div className="explanation">
+                      <strong>{prose.headline}</strong>
+                      <p>{prose.explanation}</p>
+                      <ol>
+                        {prose.plan_steps.map((step) => (
+                          <li key={step}>{step}</li>
+                        ))}
+                      </ol>
+                      <p>
+                        <b>Resposta:</b> {prose.opponent_response}
+                      </p>
+                      {prose.watch_for && (
+                        <p>
+                          <b>Atenção:</b> {prose.watch_for}
+                        </p>
+                      )}
                     </div>
                   )}
                   {move.replies.length > 0 && (
@@ -349,6 +424,10 @@ export function App() {
           </p>
           <p className="note">
             Maia-3 humano: {settings?.maia3_available ? "disponível" : "não instalado (opcional)"}.
+          </p>
+          <p className="note">
+            Explicações por API:{" "}
+            {settings?.llm_configured ? settings.llm_model : "não configuradas"}.
           </p>
         </aside>
       </div>
