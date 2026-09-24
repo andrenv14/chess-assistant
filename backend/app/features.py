@@ -1,5 +1,6 @@
 import chess
 
+from app.logging_config import get_logger, position_id
 from app.models import (
     KingSafetyFeatures,
     MaterialFeatures,
@@ -17,6 +18,7 @@ PIECE_VALUES = {
     chess.QUEEN: 900,
 }
 FILES = "abcdefgh"
+logger = get_logger(__name__)
 
 
 def extract_position_features(fen: str) -> PositionFeaturesResponse:
@@ -24,7 +26,7 @@ def extract_position_features(fen: str) -> PositionFeaturesResponse:
     board = chess.Board(fen)
     white_material = _material(board, chess.WHITE)
     black_material = _material(board, chess.BLACK)
-    return PositionFeaturesResponse(
+    response = PositionFeaturesResponse(
         fen=fen,
         phase=_phase(board),
         side_to_move="white" if board.turn == chess.WHITE else "black",
@@ -39,6 +41,17 @@ def extract_position_features(fen: str) -> PositionFeaturesResponse:
         black_king=_king_safety(board, chess.BLACK),
         tactics=_tactical_features(board),
     )
+    logger.info(
+        "position_features_extracted",
+        extra={
+            "event_data": {
+                "position_id": position_id(fen),
+                "phase": response.phase,
+                "legal_move_count": response.tactics.legal_move_count,
+            }
+        },
+    )
+    return response
 
 
 def _material(board: chess.Board, color: chess.Color) -> SideMaterial:
