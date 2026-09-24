@@ -30,6 +30,15 @@ export interface MoveAnalysis extends ReplyAnalysis {
   replies: ReplyAnalysis[];
 }
 
+export interface OpeningInfo {
+  eco: string;
+  name: string;
+  pgn: string;
+  uci_moves: string[];
+  ply_count: number;
+  source: "lichess-chess-openings";
+}
+
 export interface AnalyzeRequest {
   fen: string;
   actor: "user" | "opponent";
@@ -45,6 +54,7 @@ export interface AnalyzeResponse {
   evaluation_cp: number | null;
   evaluation_mate: number | null;
   candidates: MoveAnalysis[];
+  opening: OpeningInfo | null;
 }
 
 export type MoveClassificationKey =
@@ -59,7 +69,6 @@ export type MoveClassificationKey =
 export interface ClassifyMoveRequest {
   before_fen: string;
   after_fen: string;
-  is_book: boolean;
 }
 
 export interface MoveClassificationResponse {
@@ -77,6 +86,7 @@ export interface MoveClassificationResponse {
   evaluation_before_mate: number | null;
   evaluation_after_cp: number | null;
   evaluation_after_mate: number | null;
+  opening: OpeningInfo | null;
 }
 
 export interface BrowserPositionEvent {

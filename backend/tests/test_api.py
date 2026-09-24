@@ -1,3 +1,4 @@
+import chess
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -10,6 +11,7 @@ def test_health_and_settings_are_available_without_stockfish() -> None:
 
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
+    assert health.json()["opening_positions"] >= 3_800
     assert profiles.status_code == 200
     assert set(profiles.json()["profiles"]) == {"user", "opponent", "evaluator"}
 
@@ -51,3 +53,22 @@ def test_extension_event_is_forwarded_to_desktop() -> None:
                 "type": "ack",
                 "at": "2026-09-24T12:00:00Z",
             }
+
+
+def test_opening_endpoint_identifies_position() -> None:
+    board = chess.Board()
+    board.push_uci("e2e4")
+    board.push_uci("c7c5")
+
+    with TestClient(app) as client:
+        response = client.get("/api/opening", params={"fen": board.fen()})
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Sicilian Defense"
+
+
+def test_opening_endpoint_rejects_invalid_fen() -> None:
+    with TestClient(app) as client:
+        response = client.get("/api/opening", params={"fen": "not-a-fen"})
+
+    assert response.status_code == 422

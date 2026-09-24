@@ -84,6 +84,15 @@ class MoveAnalysis(ReplyAnalysis):
     replies: list[ReplyAnalysis] = Field(default_factory=list)
 
 
+class OpeningInfo(BaseModel):
+    eco: str
+    name: str
+    pgn: str
+    uci_moves: list[str]
+    ply_count: int
+    source: Literal["lichess-chess-openings"] = "lichess-chess-openings"
+
+
 class AnalyzeResponse(BaseModel):
     fen: str
     actor: Actor
@@ -92,12 +101,12 @@ class AnalyzeResponse(BaseModel):
     evaluation_cp: int | None
     evaluation_mate: int | None
     candidates: list[MoveAnalysis]
+    opening: OpeningInfo | None = None
 
 
 class ClassifyMoveRequest(BaseModel):
     before_fen: str
     after_fen: str
-    is_book: bool = False
 
     _validate_before = field_validator("before_fen")(AnalyzeRequest.validate_fen.__func__)
     _validate_after = field_validator("after_fen")(AnalyzeRequest.validate_fen.__func__)
@@ -118,6 +127,7 @@ class MoveClassificationResponse(BaseModel):
     evaluation_before_mate: int | None
     evaluation_after_cp: int | None
     evaluation_after_mate: int | None
+    opening: OpeningInfo | None = None
 
 
 class BrowserPositionEvent(BaseModel):

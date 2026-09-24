@@ -16,6 +16,7 @@ sem depender das demais.
 - alteração de Elo/Skill/tempo de análise sem reiniciar o app;
 - extensão Manifest V3 que transmite snapshots FEN ao `localhost`;
 - reconstrução e classificação do lance efetivamente jogado;
+- catálogo local CC0 do Lichess com identificação automática de abertura;
 - contrato pronto para a futura camada de explicações via API.
 
 ## Arquitetura
@@ -82,6 +83,7 @@ marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 - `PUT /api/settings/{role}` — muda força durante a sessão;
 - `POST /api/analyze` — calcula melhores lances e respostas;
 - `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
+- `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
 - `WS /ws/extension` — eventos vindos do navegador;
 - `WS /ws/desktop` — eventos consumidos pelo app.
 
@@ -101,7 +103,7 @@ Exemplo de alteração de força:
 ## Próximos marcos
 
 1. explicações estruturadas via API com evidências do motor;
-2. classificadores determinísticos de abertura, tática, estrutura de peões,
+2. classificadores determinísticos de tática, estrutura de peões,
    segurança do rei e final;
 3. adaptadores de tabuleiro mais robustos, começando por Lichess Analysis;
 4. persistência de sessões e histórico de posições;
@@ -111,4 +113,5 @@ Exemplo de alteração de força:
 
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Classificação de lances](docs/CLASSIFICATION.md)
+- [Base local de aberturas](docs/OPENINGS.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)

@@ -42,7 +42,8 @@ implemented:
   expected result;
 - `Miss (×)`: failure to exploit an opponent error and a lost winning chance;
 - `Book (📖)`: automatic recognition from ECO/Lichess opening data. The API
-  already accepts an `is_book` flag, but the opening provider is still planned.
+  derives book status from the bundled Lichess opening catalog. Clients cannot
+  override it.
 
 Every special rule must be implemented as deterministic code with named fixture
 positions. The LLM may explain a classification but cannot assign or change it.

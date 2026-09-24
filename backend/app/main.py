@@ -17,8 +17,10 @@ from app.models import (
     EngineRole,
     EngineSettings,
     MoveClassificationResponse,
+    OpeningInfo,
     SettingsResponse,
 )
+from app.openings import opening_book
 
 configure_logging()
 logger = get_logger(__name__)
@@ -50,6 +52,7 @@ async def health() -> dict[str, object]:
         "status": "ok",
         "stockfish_available": manager.available,
         "stockfish_path": str(manager.stockfish_path) if manager.stockfish_path else None,
+        "opening_positions": opening_book.size,
     }
 
 
@@ -69,7 +72,8 @@ async def update_settings(role: EngineRole, profile: EngineSettings) -> EngineSe
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     try:
-        return await manager.analyze(request)
+        response = await manager.analyze(request)
+        return response.model_copy(update={"opening": opening_book.lookup_fen(request.fen)})
     except EngineUnavailableError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
@@ -79,7 +83,9 @@ async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
 @app.post("/api/classify", response_model=MoveClassificationResponse)
 async def classify_move(request: ClassifyMoveRequest) -> MoveClassificationResponse:
     try:
-        return await manager.classify_move(request)
+        opening = opening_book.lookup_fen(request.after_fen)
+        response = await manager.classify_move(request, is_book=opening is not None)
+        return response.model_copy(update={"opening": opening})
     except InvalidPositionTransitionError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except EngineUnavailableError as exc:
@@ -87,6 +93,14 @@ async def classify_move(request: ClassifyMoveRequest) -> MoveClassificationRespo
     except Exception as exc:
         logger.exception("move_classification_failed")
         raise HTTPException(status_code=500, detail=f"Move classification failed: {exc}") from exc
+
+
+@app.get("/api/opening", response_model=OpeningInfo | None)
+async def identify_opening(fen: str) -> OpeningInfo | None:
+    try:
+        return opening_book.lookup_fen(fen)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="invalid FEN") from exc
 
 
 @app.websocket("/ws/extension")

@@ -61,5 +61,6 @@ Lichess adapter ───┘                         │
 ## Current scope
 
 The current milestone has a working analysis API, runtime Stockfish profiles,
-snapshot transport and base move classification. Maia-3, opening lookup, feature
-extractors, LLM explanations and production-grade site adapters remain planned.
+snapshot transport, base move classification and offline opening lookup. Maia-3,
+feature extractors, LLM explanations and production-grade site adapters remain
+planned.

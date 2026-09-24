@@ -58,14 +58,19 @@ class StockfishManager:
         async with self._lock:
             return await asyncio.to_thread(self._analyze_sync, request)
 
-    async def classify_move(self, request: ClassifyMoveRequest) -> MoveClassificationResponse:
+    async def classify_move(
+        self,
+        request: ClassifyMoveRequest,
+        *,
+        is_book: bool = False,
+    ) -> MoveClassificationResponse:
         if not self.available:
             raise EngineUnavailableError(
                 "Stockfish not found. Set STOCKFISH_PATH in backend/.env."
             )
 
         async with self._lock:
-            return await asyncio.to_thread(self._classify_move_sync, request)
+            return await asyncio.to_thread(self._classify_move_sync, request, is_book=is_book)
 
     async def close(self) -> None:
         async with self._lock:
@@ -171,7 +176,12 @@ class StockfishManager:
         )
         return response
 
-    def _classify_move_sync(self, request: ClassifyMoveRequest) -> MoveClassificationResponse:
+    def _classify_move_sync(
+        self,
+        request: ClassifyMoveRequest,
+        *,
+        is_book: bool = False,
+    ) -> MoveClassificationResponse:
         started = perf_counter()
         before = chess.Board(request.before_fen)
         move = infer_played_move(request.before_fen, request.after_fen)
@@ -197,7 +207,7 @@ class StockfishManager:
         expected_loss = max(0.0, expected_before - expected_after)
         classification = classify_expected_points_loss(
             expected_loss,
-            is_book=request.is_book,
+            is_book=is_book,
         )
 
         response = MoveClassificationResponse(

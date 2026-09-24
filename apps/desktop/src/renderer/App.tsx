@@ -126,7 +126,7 @@ export function App() {
       setFen(event.fen);
 
       if (beforeFen && beforeFen !== event.fen && event.source !== "manual") {
-        void classifyMove({ before_fen: beforeFen, after_fen: event.fen, is_book: false })
+        void classifyMove({ before_fen: beforeFen, after_fen: event.fen })
           .then(setLastMove)
           .catch(() => {
             logEvent("warn", "move_classification_skipped", { component: "desktop" });
@@ -214,11 +214,23 @@ export function App() {
                   Perda de expectativa: {(lastMove.expected_points_loss * 100).toFixed(1)} pontos
                   percentuais. Melhor lance: <b>{lastMove.best_move_san}</b>.
                 </p>
+                {lastMove.opening && (
+                  <p>
+                    Posição de livro: <b>{lastMove.opening.name}</b> ({lastMove.opening.eco}).
+                  </p>
+                )}
               </div>
             </article>
           )}
 
           <div className="moves">
+            {analysis?.opening && (
+              <article className="move opening">
+                <p className="eyebrow">ABERTURA · {analysis.opening.eco}</p>
+                <h2>{analysis.opening.name}</h2>
+                <p className="variation">Linha de referência: {analysis.opening.pgn}</p>
+              </article>
+            )}
             {analysis?.candidates.map((move, index) => (
               <article className="move" key={move.uci}>
                 <div className="move__heading">
