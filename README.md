@@ -1,5 +1,7 @@
 # Chess Assistant
 
+[![CI](https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml)
+
 Assistente local de xadrez para posições de análise, partidas contra bots e outros
 contextos em que assistência externa seja permitida. O projeto separa a leitura do
 tabuleiro, a interface desktop e os motores nativos para que cada parte possa evoluir

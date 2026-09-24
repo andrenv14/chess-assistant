@@ -15,6 +15,12 @@ cd backend
 .venv\Scripts\python.exe -m pytest
 ```
 
+The GitHub Actions workflow repeats the TypeScript and fast Python checks on
+every push to `main` and on every pull request. It uses read-only repository
+permissions, cancels superseded runs and enforces a 15-minute timeout per job.
+Native Stockfish integration stays in the explicit local command below because
+the fast CI job does not download an engine binary.
+
 ## Testing strategy
 
 - Pytest covers models, chess rules, classification, APIs, WebSockets and UCI
