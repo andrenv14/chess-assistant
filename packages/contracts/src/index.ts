@@ -68,6 +68,17 @@ export type MoveClassificationKey =
   | "mistake"
   | "blunder";
 
+export type PlanHint =
+  | "force_king_response"
+  | "trade_or_win_material"
+  | "secure_king"
+  | "develop_and_coordinate"
+  | "contest_center"
+  | "advance_passed_pawn"
+  | "create_passed_pawn"
+  | "promote_pawn"
+  | "improve_king_safety";
+
 export interface ClassifyMoveRequest {
   before_fen: string;
   after_fen: string;
@@ -162,6 +173,35 @@ export interface PositionFeaturesResponse {
     white_undefended_attacked: string[];
     black_undefended_attacked: string[];
   };
+}
+
+export interface MoveFacts {
+  is_capture: boolean;
+  captured_piece: string | null;
+  gives_check: boolean;
+  is_castling: boolean;
+  promotion_piece: string | null;
+  develops_minor_piece: boolean;
+  occupies_center: boolean;
+  moves_passed_pawn: boolean;
+  creates_passed_pawn: boolean;
+  improves_pawn_shield: boolean;
+}
+
+export interface CandidateEvidence {
+  rank: number;
+  uci: string;
+  san: string;
+  facts: MoveFacts;
+  plan_hints: PlanHint[];
+  principal_variation_san: string[];
+  opponent_replies: ReplyAnalysis[];
+}
+
+export interface AnalysisEvidenceResponse {
+  analysis: AnalyzeResponse;
+  position: PositionFeaturesResponse;
+  candidates: CandidateEvidence[];
 }
 
 export interface BrowserPositionEvent {

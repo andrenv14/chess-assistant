@@ -1,6 +1,7 @@
 import type {
   AnalyzeResponse,
   BrowserEvent,
+  CandidateEvidence,
   EngineRole,
   EngineSettings,
   EngineSettingsResponse,
@@ -11,14 +12,19 @@ import { logEvent } from "@chess-assistant/contracts";
 import { useEffect, useRef, useState } from "react";
 
 import {
-  analyzePosition,
+  analyzeEvidence,
   classifyMove,
   getSettings,
   predictHumanMoves,
   updateSettings,
   WS_BASE,
 } from "./api";
-import { evaluationToWhitePercent, formatEvaluation, formatProbability } from "./presentation";
+import {
+  evaluationToWhitePercent,
+  formatEvaluation,
+  formatPlanHint,
+  formatProbability,
+} from "./presentation";
 
 const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const ROLES: EngineRole[] = ["user", "opponent", "evaluator"];
@@ -102,6 +108,7 @@ export function App() {
   const [actor, setActor] = useState<"user" | "opponent">("user");
   const [settings, setSettings] = useState<EngineSettingsResponse | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
+  const [candidateEvidence, setCandidateEvidence] = useState<CandidateEvidence[]>([]);
   const [humanView, setHumanView] = useState<HumanPredictionResponse | null>(null);
   const [lastMove, setLastMove] = useState<MoveClassificationResponse | null>(null);
   const [status, setStatus] = useState("Conectando ao backend…");
@@ -152,6 +159,7 @@ export function App() {
     setBusy(true);
     setStatus("Analisando…");
     setHumanView(null);
+    setCandidateEvidence([]);
     try {
       const selfRole = actor === "user" ? "user" : "opponent";
       const opponentRole = actor === "user" ? "opponent" : "user";
@@ -170,14 +178,16 @@ export function App() {
           });
       }
 
-      const result = await analyzePosition({
+      const bundle = await analyzeEvidence({
         fen,
         actor,
         include_evaluator: true,
         include_replies: true,
       });
       if (analysisRequestId.current !== requestId) return;
+      const result = bundle.analysis;
       setAnalysis(result);
+      setCandidateEvidence(bundle.candidates);
       logEvent("info", "analysis_completed", {
         component: "desktop",
         candidateCount: result.candidates.length,
@@ -281,29 +291,40 @@ export function App() {
                 <p className="model-note">Ranking humano; a avaliação objetiva continua sendo do Stockfish.</p>
               </article>
             )}
-            {analysis?.candidates.map((move, index) => (
-              <article className="move" key={move.uci}>
-                <div className="move__heading">
-                  <span className="rank">{index + 1}</span>
-                  <div>
-                    <h2>{move.san}</h2>
-                    <code>{move.uci}</code>
+            {analysis?.candidates.map((move, index) => {
+              const evidence = candidateEvidence[index];
+              return (
+                <article className="move" key={move.uci}>
+                  <div className="move__heading">
+                    <span className="rank">{index + 1}</span>
+                    <div>
+                      <h2>{move.san}</h2>
+                      <code>{move.uci}</code>
+                    </div>
+                    <strong>{formatEvaluation(move.score_cp, move.mate)}</strong>
                   </div>
-                  <strong>{formatEvaluation(move.score_cp, move.mate)}</strong>
-                </div>
-                <p className="variation">{move.pv_san.join(" ")}</p>
-                {move.replies.length > 0 && (
-                  <div className="replies">
-                    <span>Respostas do oponente</span>
-                    {move.replies.map((reply) => (
-                      <div key={reply.uci}>
-                        <b>{reply.san}</b> <small>{reply.pv_san.join(" ")}</small>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </article>
-            ))}
+                  <p className="variation">{move.pv_san.join(" ")}</p>
+                  {evidence && evidence.plan_hints.length > 0 && (
+                    <div className="plan-hints">
+                      <span>Ideias verificadas</span>
+                      {evidence.plan_hints.map((hint) => (
+                        <small key={hint}>{formatPlanHint(hint)}</small>
+                      ))}
+                    </div>
+                  )}
+                  {move.replies.length > 0 && (
+                    <div className="replies">
+                      <span>Respostas do oponente</span>
+                      {move.replies.map((reply) => (
+                        <div key={reply.uci}>
+                          <b>{reply.san}</b> <small>{reply.pv_san.join(" ")}</small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
             {!analysis && <p className="empty">Insira uma posição e rode a primeira análise.</p>}
           </div>
         </section>

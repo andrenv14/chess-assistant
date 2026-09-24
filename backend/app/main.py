@@ -8,11 +8,13 @@ from pydantic import TypeAdapter, ValidationError
 from app.classification import InvalidPositionTransitionError
 from app.config import settings
 from app.engine import EngineUnavailableError, StockfishManager
+from app.evidence import build_analysis_evidence
 from app.features import extract_position_features
 from app.hub import EventHub
 from app.logging_config import configure_logging, get_logger
 from app.maia import MaiaManager, MaiaUnavailableError
 from app.models import (
+    AnalysisEvidenceResponse,
     AnalyzeRequest,
     AnalyzeResponse,
     BrowserEvent,
@@ -92,6 +94,19 @@ async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Stockfish analysis failed: {exc}") from exc
+
+
+@app.post("/api/evidence", response_model=AnalysisEvidenceResponse)
+async def analyze_evidence(request: AnalyzeRequest) -> AnalysisEvidenceResponse:
+    try:
+        response = await manager.analyze(request)
+        response = response.model_copy(update={"opening": opening_book.lookup_fen(request.fen)})
+        return build_analysis_evidence(response)
+    except EngineUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("analysis_evidence_failed")
+        raise HTTPException(status_code=500, detail=f"Evidence analysis failed: {exc}") from exc
 
 
 @app.post("/api/classify", response_model=MoveClassificationResponse)

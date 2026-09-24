@@ -6,6 +6,7 @@ import chess
 import pytest
 
 from app.engine import StockfishManager
+from app.evidence import build_analysis_evidence
 from app.models import AnalyzeRequest, ClassifyMoveRequest, EngineSettings
 
 STOCKFISH_BINARY = Path(os.environ.get("STOCKFISH_PATH", ""))
@@ -50,6 +51,11 @@ def test_real_stockfish_analyzes_candidates_and_replies() -> None:
             for move in result.candidates
         )
         assert all(move.replies for move in result.candidates)
+        evidence = build_analysis_evidence(result)
+        assert [item.uci for item in evidence.candidates] == [
+            item.uci for item in result.candidates
+        ]
+        assert evidence.position.phase == "opening"
 
     asyncio.run(scenario())
 

@@ -14,6 +14,17 @@ MoveClassificationKey = Literal[
     "mistake",
     "blunder",
 ]
+PlanHint = Literal[
+    "force_king_response",
+    "trade_or_win_material",
+    "secure_king",
+    "develop_and_coordinate",
+    "contest_center",
+    "advance_passed_pawn",
+    "create_passed_pawn",
+    "promote_pawn",
+    "improve_king_safety",
+]
 
 
 class EngineSettings(BaseModel):
@@ -211,6 +222,35 @@ class PositionFeaturesResponse(BaseModel):
     white_king: KingSafetyFeatures
     black_king: KingSafetyFeatures
     tactics: TacticalFeatures
+
+
+class MoveFacts(BaseModel):
+    is_capture: bool
+    captured_piece: str | None
+    gives_check: bool
+    is_castling: bool
+    promotion_piece: str | None
+    develops_minor_piece: bool
+    occupies_center: bool
+    moves_passed_pawn: bool
+    creates_passed_pawn: bool
+    improves_pawn_shield: bool
+
+
+class CandidateEvidence(BaseModel):
+    rank: int
+    uci: str
+    san: str
+    facts: MoveFacts
+    plan_hints: list[PlanHint]
+    principal_variation_san: list[str]
+    opponent_replies: list[ReplyAnalysis]
+
+
+class AnalysisEvidenceResponse(BaseModel):
+    analysis: AnalyzeResponse
+    position: PositionFeaturesResponse
+    candidates: list[CandidateEvidence]
 
 
 class BrowserPositionEvent(BaseModel):

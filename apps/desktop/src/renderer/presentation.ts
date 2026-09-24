@@ -13,3 +13,21 @@ export function evaluationToWhitePercent(cp: number | null, mate: number | null)
 export function formatProbability(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
+import type { PlanHint } from "@chess-assistant/contracts";
+
+const PLAN_LABELS: Record<PlanHint, string> = {
+  force_king_response: "forçar uma resposta do rei",
+  trade_or_win_material: "trocar ou ganhar material",
+  secure_king: "colocar o rei em segurança",
+  develop_and_coordinate: "desenvolver e coordenar as peças",
+  contest_center: "disputar o centro",
+  advance_passed_pawn: "avançar o peão passado",
+  create_passed_pawn: "criar um peão passado",
+  promote_pawn: "promover o peão",
+  improve_king_safety: "reforçar a segurança do rei",
+};
+
+
+export function formatPlanHint(hint: PlanHint): string {
+  return PLAN_LABELS[hint];
+}

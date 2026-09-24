@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluationToWhitePercent, formatEvaluation, formatProbability } from "./presentation";
+import {
+  evaluationToWhitePercent,
+  formatEvaluation,
+  formatPlanHint,
+  formatProbability,
+} from "./presentation";
 
 describe("formatEvaluation", () => {
   it("formats centipawns from White's perspective", () => {
@@ -30,5 +35,12 @@ describe("formatProbability", () => {
   it("formats a model probability without fake precision", () => {
     expect(formatProbability(0.456)).toBe("46%");
     expect(formatProbability(null)).toBe("—");
+  });
+});
+
+describe("formatPlanHint", () => {
+  it("turns evidence tags into concise Portuguese labels", () => {
+    expect(formatPlanHint("secure_king")).toBe("colocar o rei em segurança");
+    expect(formatPlanHint("advance_passed_pawn")).toBe("avançar o peão passado");
   });
 });

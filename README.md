@@ -105,6 +105,7 @@ marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 - `GET /api/settings` — perfis atuais;
 - `PUT /api/settings/{role}` — muda força durante a sessão;
 - `POST /api/analyze` — calcula melhores lances e respostas;
+- `POST /api/evidence` — análise Stockfish enriquecida com planos verificáveis;
 - `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
 - `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
 - `POST /api/human-prediction` — candidatos humanos opcionais via Maia-3;
@@ -142,4 +143,5 @@ Exemplo de alteração de força:
 - [Instalação e testes do Stockfish](docs/STOCKFISH.md)
 - [Integração opcional com Maia-3](docs/MAIA3.md)
 - [Evidências determinísticas da posição](docs/POSITION_FEATURES.md)
+- [Evidências por candidato para explicações](docs/EXPLANATION_EVIDENCE.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)

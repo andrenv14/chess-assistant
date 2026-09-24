@@ -1,4 +1,5 @@
 import type {
+  AnalysisEvidenceResponse,
   AnalyzeRequest,
   AnalyzeResponse,
   ClassifyMoveRequest,
@@ -39,6 +40,14 @@ export function updateSettings(
 
 export function analyzePosition(payload: AnalyzeRequest): Promise<AnalyzeResponse> {
   return request("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function analyzeEvidence(payload: AnalyzeRequest): Promise<AnalysisEvidenceResponse> {
+  return request("/api/evidence", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

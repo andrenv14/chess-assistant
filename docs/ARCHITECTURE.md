@@ -54,13 +54,14 @@ Lichess adapter ───┘                         │
 
 1. The full-strength Stockfish evaluator is the objective authority.
 2. Limited Stockfish instances generate configurable suggestions and replies.
-3. Maia-3 may estimate human move probability, never objective evaluation.
+3. Maia-3 may separately rank plausible human choices and estimate human-game
+   outcomes; it cannot alter Stockfish candidates or objective evaluation.
 4. Deterministic extractors identify chess facts and themes.
 5. The LLM verbalizes supplied evidence and cannot override it.
 
 ## Current scope
 
 The current milestone has a working analysis API, runtime Stockfish profiles,
-snapshot transport, base move classification, offline opening lookup and an
-optional Maia-3 UCI boundary. Feature extractors, LLM explanations and
-production-grade site adapters remain planned.
+snapshot transport, base move classification, offline opening lookup, position
+and candidate evidence, and an optional Maia-3 UCI boundary. Schema-validated
+LLM explanations and production-grade site adapters remain planned.

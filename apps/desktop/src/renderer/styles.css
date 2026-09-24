@@ -45,6 +45,9 @@ select { padding: 10px 34px 10px 11px; }
 .move__heading > strong { margin-left: auto; color: #c6dfa2; }
 .rank { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; color: #9cad8e; background: #252b22; font-size: 12px; font-weight: 800; }
 .variation { margin: 11px 0 0 38px; color: #b9c1b1; font-size: 13px; line-height: 1.6; }
+.plan-hints { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0 38px; }
+.plan-hints span { width: 100%; color: #899580; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.plan-hints small { padding: 5px 8px; border: 1px solid #475440; border-radius: 99px; color: #c4d3b8; background: #1d241a; }
 .human-prediction h2 { margin-bottom: 12px; font-family: Georgia, serif; font-weight: 500; }
 .human-prediction__moves { display: grid; gap: 8px; }
 .human-prediction__moves > div { display: grid; grid-template-columns: 27px 55px 1fr; align-items: center; gap: 9px; }
