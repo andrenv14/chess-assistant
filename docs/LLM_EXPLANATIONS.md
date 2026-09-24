@@ -35,18 +35,42 @@ The schema intentionally has no fields for engine score, best-move rank,
 classification or human move probability. Therefore model output cannot replace
 those authoritative values in the UI.
 
-## OpenAI transport
+## OpenRouter transport
 
-The initial provider uses the official OpenAI Python SDK and Responses API
-Structured Outputs with the Pydantic model as `text_format`. Requests set
-`store=false`, use a bounded timeout and retry a network failure at most once.
-The SDK handles the JSON Schema supplied to the model; the service then performs
-the additional chess-specific UCI/order validation.
+The provider uses the OpenAI-compatible Python SDK against OpenRouter's
+OpenResponses endpoint. Structured Outputs receive the Pydantic model as
+`text_format`; OpenRouter routing sets `require_parameters=true`, so a provider
+that cannot honor the schema is rejected rather than silently ignoring it.
+Requests set `store=false`, cap output tokens, use a bounded timeout and retry a
+network failure at most once. The service then performs the additional
+chess-specific UCI/order validation.
+
+The default model is `google/gemini-3.8-flash`. Model and gateway remain
+configuration values and can be changed without altering the chess contracts.
+Logs contain model, gateway and token counts, but never prompts or responses.
 
 `POST /api/explain` returns the evidence and its explanation together. The
 desktop replaces its displayed candidate list with that exact evidence before
 showing the prose, so a second time-limited engine run cannot attach text to a
 different line.
 
-Configure `LLM_API_KEY` and `LLM_MODEL` in `backend/.env`. `LLM_API_BASE_URL` is
-optional. No key, prompt, full FEN or provider response is committed or logged.
+Copy `backend/.env.example` to `backend/.env` and set `LLM_API_KEY`. No key,
+prompt, full FEN or provider response is committed or logged.
+
+## Real-provider smoke test
+
+`backend/scripts/smoke_llm.py` runs a single paid request for a fixed Ruy Lopez
+position. It starts native Stockfish, produces three candidate lines and two
+responses per candidate, builds deterministic evidence and validates the model
+output against the same production schema and candidate order.
+
+Set `LLM_API_KEY`, `LLM_API_BASE_URL` and `LLM_MODEL` only in the current shell,
+then run this command from `backend`:
+
+```powershell
+.venv\Scripts\python.exe scripts\smoke_llm.py
+```
+
+The credential is read only from the environment. The script prints the final
+validated explanation; structured logs contain only a hashed position id,
+durations, model/gateway names and token counts.

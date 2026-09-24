@@ -48,6 +48,7 @@ explanation_service = (
             api_key=settings.llm_api_key,
             model=settings.llm_model,
             base_url=settings.llm_api_base_url,
+            max_output_tokens=settings.llm_max_output_tokens,
         )
     )
     if settings.llm_api_key and settings.llm_model

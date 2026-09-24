@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **78%**;
-- portfolio-ready release: **55%**;
-- full intended product: **58%**.
+- local analysis core: **80%**;
+- portfolio-ready release: **57%**;
+- full intended product: **59%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -23,7 +23,8 @@ extension.
 - reconstruction and base classification of the played move;
 - 3,815 local Lichess opening positions;
 - deterministic position and candidate facts;
-- schema-validated OpenAI Responses transport with Stockfish order enforcement;
+- live OpenRouter/OpenResponses request with structured-output and Stockfish
+  order enforcement (`google/gemini-3.8-flash`);
 - current Lichess Analysis and Chess.com Analysis FEN extraction;
 - TypeScript contracts, structured redacted logs and engineering documentation;
 - local Ruff, Pytest, Vitest, typecheck and production builds;
@@ -31,8 +32,8 @@ extension.
 
 ## Required before calling it portfolio-ready
 
-1. Run a real LLM request with a user-provided key and evaluate explanation
-   quality on a fixed position set.
+1. Expand the successful real-provider smoke test into a fixed regression set
+   covering tactics, strategy, endgames and forced mates.
 2. Exercise the built extension and desktop app together in installed form on
    both supported analysis pages.
 3. Expand move labels beyond the current objective loss bands where evidence

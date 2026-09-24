@@ -1,13 +1,14 @@
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, get_args
+from urllib.parse import urlparse
 
 from openai import OpenAI
 from pydantic import ValidationError
 
 from app.logging_config import get_logger, position_id
-from app.models import AnalysisEvidenceResponse, PositionExplanation
+from app.models import AnalysisEvidenceResponse, PlanHint, PositionExplanation
 
 logger = get_logger(__name__)
 
@@ -18,8 +19,16 @@ Preserve rigorosamente a ordem dos candidatos e o UCI de cada lance.
 Não invente variantes, ameaças, probabilidades, classificações ou nomes de abertura.
 Não chame um lance de melhor se ele não tiver rank 1 no JSON.
 Plan hints são pistas verificadas, não conclusões estratégicas completas.
+Nunca exponha nomes internos como plan_hints, snake_case ou chaves do JSON.
+Traduza sinais técnicos para linguagem natural de xadrez em português.
+Explique a ideia antes dos números; não despeje variantes longas nem recite o JSON.
+Use tom humano, fluido e útil, sem dizer "rank", "evidência" ou "registrado".
+Use ortografia brasileira correta, inclusive acentos e cedilha.
+Não afirme qual foi o último lance: uma FEN isolada não contém esse histórico.
 Se a evidência não sustentar uma afirmação, diga que ela não foi determinada.
 Responda somente com JSON compatível com o esquema solicitado, sem Markdown."""
+
+INTERNAL_PLAN_HINTS = frozenset(get_args(PlanHint))
 
 
 @dataclass(frozen=True)
@@ -91,6 +100,11 @@ class ExplanationService:
             raise ExplanationValidationError(
                 "LLM candidates must exactly match Stockfish order and UCI moves"
             )
+        serialized = json.dumps(explanation.model_dump(mode="json"), ensure_ascii=False)
+        if any(identifier in serialized for identifier in INTERNAL_PLAN_HINTS):
+            raise ExplanationValidationError(
+                "LLM response exposed an internal chess evidence identifier"
+            )
 
         logger.info(
             "explanation_validated",
@@ -118,9 +132,15 @@ class OpenAIExplanationProvider:
         model: str,
         base_url: str | None = None,
         timeout_seconds: float = 45,
+        max_output_tokens: int = 1800,
         client: Any | None = None,
     ) -> None:
         self.model = model
+        self.max_output_tokens = max_output_tokens
+        hostname = urlparse(base_url).hostname if base_url else None
+        self.is_openrouter = hostname == "openrouter.ai" or bool(
+            hostname and hostname.endswith(".openrouter.ai")
+        )
         if client is not None:
             self._client = client
             return
@@ -131,6 +151,11 @@ class OpenAIExplanationProvider:
         }
         if base_url:
             options["base_url"] = base_url
+        if self.is_openrouter:
+            options["default_headers"] = {
+                "HTTP-Referer": "https://github.com/andrenv14/chess-assistant",
+                "X-OpenRouter-Title": "Chess Assistant",
+            }
         self._client = OpenAI(**options)
 
     async def generate(self, prompt: ExplanationPrompt) -> dict[str, Any]:
@@ -138,14 +163,20 @@ class OpenAIExplanationProvider:
 
     def _generate_sync(self, prompt: ExplanationPrompt) -> dict[str, Any]:
         try:
-            response = self._client.responses.parse(
-                model=self.model,
-                input=[
+            request: dict[str, Any] = {
+                "model": self.model,
+                "input": [
                     {"role": "system", "content": prompt.system},
                     {"role": "user", "content": prompt.user},
                 ],
-                text_format=PositionExplanation,
-                store=False,
+                "text_format": PositionExplanation,
+                "store": False,
+                "max_output_tokens": self.max_output_tokens,
+            }
+            if self.is_openrouter:
+                request["extra_body"] = {"provider": {"require_parameters": True}}
+            response = self._client.responses.parse(
+                **request,
             )
         except Exception as exc:
             # Provider errors are normalized here so the HTTP layer never needs
@@ -156,4 +187,16 @@ class OpenAIExplanationProvider:
             raise ExplanationProviderError(
                 "OpenAI response was incomplete, refused, or did not contain structured output"
             )
+        usage = getattr(response, "usage", None)
+        logger.info(
+            "llm_request_completed",
+            extra={
+                "event_data": {
+                    "model": self.model,
+                    "gateway": "openrouter" if self.is_openrouter else "openai-compatible",
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                }
+            },
+        )
         return parsed.model_dump(mode="json")

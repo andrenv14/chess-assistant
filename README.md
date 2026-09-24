@@ -20,7 +20,7 @@ sem depender das demais.
 - reconstrução e classificação do lance efetivamente jogado;
 - catálogo local CC0 do Lichess com identificação automática de abertura;
 - evidências determinísticas de posição e de cada candidato do Stockfish;
-- explicações estruturadas e validadas pela OpenAI Responses API.
+- explicações estruturadas e validadas via OpenRouter/OpenResponses.
 
 ## Arquitetura
 
@@ -49,6 +49,10 @@ No Windows, instale a versão oficial, fixada e verificada pelo checksum:
 O backend descobre essa instalação automaticamente. Como alternativa, defina o
 caminho de outro motor copiando `backend/.env.example` para `backend/.env` e
 ajustando `STOCKFISH_PATH`.
+
+As explicações usam uma API externa opcional. O exemplo configura o modelo
+`google/gemini-3.8-flash` via OpenRouter; a chave permanece somente no arquivo
+local ignorado pelo Git ou no ambiente do processo.
 
 Maia-3 é opcional e mais pesado. Para instalar seu ambiente isolado sem baixar
 o checkpoint antecipadamente:

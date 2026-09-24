@@ -78,6 +78,10 @@ def test_prompt_marks_stockfish_as_authority_and_serializes_evidence() -> None:
     payload = json.loads(prompt.user)
 
     assert "Stockfish é a autoridade objetiva" in prompt.system
+    assert "Nunca exponha nomes internos" in prompt.system
+    assert "Use tom humano" in prompt.system
+    assert "acentos e cedilha" in prompt.system
+    assert "Não afirme qual foi o último lance" in prompt.system
     assert payload["required_candidate_count"] == 2
     assert payload["required_candidate_order"] == ["g1f3", "e2e4"]
     assert payload["evidence"]["candidates"][0]["plan_hints"] == [
@@ -133,6 +137,16 @@ def test_rejects_missing_or_invented_candidate() -> None:
         asyncio.run(ExplanationService(provider).explain(evidence))
 
 
+def test_rejects_explanation_that_exposes_internal_plan_hint() -> None:
+    evidence = evidence_for("g1f3")
+    payload = valid_payload("g1f3")
+    payload["candidates"][0]["explanation"] = "Use develop_and_coordinate."
+    provider = FakeProvider(payload)
+
+    with pytest.raises(ExplanationValidationError, match="internal"):
+        asyncio.run(ExplanationService(provider).explain(evidence))
+
+
 def test_rejects_malformed_output_without_echoing_provider_content() -> None:
     evidence = evidence_for("g1f3")
     provider = FakeProvider({"position_summary": "private model output"})
@@ -172,7 +186,25 @@ def test_openai_transport_uses_responses_structured_output_without_storage() -> 
     assert result["candidates"][0]["uci"] == "g1f3"
     assert responses.kwargs["model"] == "test-model"
     assert responses.kwargs["store"] is False
+    assert responses.kwargs["max_output_tokens"] == 1800
     assert responses.kwargs["text_format"] is PositionExplanation
+
+
+def test_openrouter_transport_requires_structured_output_capable_provider() -> None:
+    parsed = valid_payload("g1f3")
+    responses = FakeResponsesApi(PositionExplanation.model_validate(parsed))
+    provider = OpenAIExplanationProvider(
+        api_key="test-key",
+        model="google/gemini-3.8-flash",
+        base_url="https://openrouter.ai/api/v1",
+        client=SimpleNamespace(responses=responses),
+    )
+
+    asyncio.run(provider.generate(build_explanation_prompt(evidence_for("g1f3"))))
+
+    assert responses.kwargs["extra_body"] == {
+        "provider": {"require_parameters": True}
+    }
 
 
 def test_openai_transport_normalizes_provider_failure() -> None:
