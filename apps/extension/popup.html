@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Assistant</title>
+    <style>
+      body { width: 330px; margin: 0; padding: 16px; color: #edf0e8; background: #151813; font: 13px system-ui, sans-serif; }
+      h1 { margin: 0 0 5px; font: 24px Georgia, serif; }
+      p { color: #9da695; line-height: 1.45; }
+      label { display: grid; gap: 6px; margin-top: 14px; color: #bec8b4; font-weight: 700; }
+      textarea { min-height: 78px; padding: 8px; border: 1px solid #3b4437; border-radius: 7px; color: #edf0e8; background: #0e100d; font: 11px monospace; resize: vertical; }
+      button { margin-top: 9px; padding: 9px 12px; border: 0; border-radius: 7px; color: #14200d; background: #b8d98a; font-weight: 800; cursor: pointer; }
+      #status { color: #b8d98a; }
+    </style>
+  </head>
+  <body>
+    <h1>Analysis Bridge</h1>
+    <div id="status">verificando…</div>
+    <p>A extensão só funciona em páginas de análise. Quando a página expõe o FEN, ele é enviado automaticamente.</p>
+    <label>
+      Enviar FEN manualmente
+      <textarea id="fen"></textarea>
+    </label>
+    <button id="send">Enviar para o app</button>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

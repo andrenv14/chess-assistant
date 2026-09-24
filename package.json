@@ -1,0 +1,19 @@
+{
+  "name": "chess-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/desktop",
+    "apps/extension",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:desktop": "npm run dev --workspace @chess-assistant/desktop",
+    "build:extension": "npm run build --workspace @chess-assistant/extension"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
