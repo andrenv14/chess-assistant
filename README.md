@@ -37,7 +37,14 @@ packages/contracts: mensagens compartilhadas entre TypeScript e a API
 - Python 3.11 ou superior;
 - executável nativo do Stockfish 17 ou superior.
 
-Defina o caminho do motor copiando `backend/.env.example` para `backend/.env` e
+No Windows, instale a versão oficial, fixada e verificada pelo checksum:
+
+```powershell
+.\scripts\install-stockfish.ps1
+```
+
+O backend descobre essa instalação automaticamente. Como alternativa, defina o
+caminho de outro motor copiando `backend/.env.example` para `backend/.env` e
 ajustando `STOCKFISH_PATH`.
 
 ## Instalação
@@ -49,6 +56,15 @@ cd backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
+```
+
+Os testes rápidos não dependem de um motor instalado. Para incluir a integração
+real com o processo nativo:
+
+```powershell
+$env:STOCKFISH_PATH = "C:\caminho\para\stockfish.exe"
+cd backend
+.venv\Scripts\python.exe -m pytest -m integration
 ```
 
 ## Desenvolvimento
@@ -114,4 +130,5 @@ Exemplo de alteração de força:
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Classificação de lances](docs/CLASSIFICATION.md)
 - [Base local de aberturas](docs/OPENINGS.md)
+- [Instalação e testes do Stockfish](docs/STOCKFISH.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)

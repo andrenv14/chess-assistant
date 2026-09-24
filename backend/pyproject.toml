@@ -26,6 +26,9 @@ packages = ["app"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "integration: tests that launch an installed native engine",
+]
 
 [tool.ruff]
 line-length = 100

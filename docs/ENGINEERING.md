@@ -22,7 +22,8 @@ cd backend
 - Vitest covers TypeScript transformations, presentation rules and extension
   extraction logic.
 - Real-engine tests will be marked separately so the fast suite does not depend
-  on a locally installed binary.
+  on a locally installed binary. Set `STOCKFISH_PATH` and run
+  `pytest -m integration` to exercise native UCI processes.
 - Regression tests use named FEN fixtures and state whose perspective each
   expected evaluation uses.
 - Browser adapters require captured, sanitized DOM fixtures for both supported
