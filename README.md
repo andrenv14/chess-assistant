@@ -47,6 +47,13 @@ O backend descobre essa instalação automaticamente. Como alternativa, defina o
 caminho de outro motor copiando `backend/.env.example` para `backend/.env` e
 ajustando `STOCKFISH_PATH`.
 
+Maia-3 é opcional e mais pesado. Para instalar seu ambiente isolado sem baixar
+o checkpoint antecipadamente:
+
+```powershell
+.\scripts\install-maia3.ps1
+```
+
 ## Instalação
 
 ```powershell
@@ -100,6 +107,7 @@ marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 - `POST /api/analyze` — calcula melhores lances e respostas;
 - `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
 - `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
+- `POST /api/human-prediction` — candidatos humanos opcionais via Maia-3;
 - `WS /ws/extension` — eventos vindos do navegador;
 - `WS /ws/desktop` — eventos consumidos pelo app.
 
@@ -131,4 +139,5 @@ Exemplo de alteração de força:
 - [Classificação de lances](docs/CLASSIFICATION.md)
 - [Base local de aberturas](docs/OPENINGS.md)
 - [Instalação e testes do Stockfish](docs/STOCKFISH.md)
+- [Integração opcional com Maia-3](docs/MAIA3.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)

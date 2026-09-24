@@ -15,7 +15,7 @@ Lichess adapter ───┘                         │
                                              ├─ Stockfish advisor
                                              ├─ Stockfish opponent
                                              ├─ Stockfish evaluator
-                                             ├─ Maia-3 adapter (planned)
+                                             ├─ Maia-3 adapter (optional)
                                              ├─ opening/feature analysis
                                              └─ external LLM API (planned)
                                                         │
@@ -61,6 +61,6 @@ Lichess adapter ───┘                         │
 ## Current scope
 
 The current milestone has a working analysis API, runtime Stockfish profiles,
-snapshot transport, base move classification and offline opening lookup. Maia-3,
-feature extractors, LLM explanations and production-grade site adapters remain
-planned.
+snapshot transport, base move classification, offline opening lookup and an
+optional Maia-3 UCI boundary. Feature extractors, LLM explanations and
+production-grade site adapters remain planned.

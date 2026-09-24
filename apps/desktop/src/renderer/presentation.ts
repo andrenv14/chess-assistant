@@ -9,3 +9,7 @@ export function evaluationToWhitePercent(cp: number | null, mate: number | null)
   if (cp === null) return 50;
   return Math.max(3, Math.min(97, 50 + 50 * (2 / (1 + Math.exp(-cp / 220)) - 1)));
 }
+
+export function formatProbability(value: number | null): string {
+  return value === null ? "—" : `${Math.round(value * 100)}%`;
+}

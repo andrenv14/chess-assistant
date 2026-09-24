@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -9,6 +10,7 @@ from app.config import settings
 from app.engine import EngineUnavailableError, StockfishManager
 from app.hub import EventHub
 from app.logging_config import configure_logging, get_logger
+from app.maia import MaiaManager, MaiaUnavailableError
 from app.models import (
     AnalyzeRequest,
     AnalyzeResponse,
@@ -16,6 +18,8 @@ from app.models import (
     ClassifyMoveRequest,
     EngineRole,
     EngineSettings,
+    HumanPredictionRequest,
+    HumanPredictionResponse,
     MoveClassificationResponse,
     OpeningInfo,
     SettingsResponse,
@@ -25,6 +29,7 @@ from app.openings import opening_book
 configure_logging()
 logger = get_logger(__name__)
 manager = StockfishManager(settings.stockfish_path)
+maia_manager = MaiaManager(settings.maia3_path)
 hub = EventHub()
 browser_event_adapter = TypeAdapter(BrowserEvent)
 
@@ -32,7 +37,7 @@ browser_event_adapter = TypeAdapter(BrowserEvent)
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     yield
-    await manager.close()
+    await asyncio.gather(manager.close(), maia_manager.close())
 
 
 app = FastAPI(title="Chess Assistant API", version="0.1.0", lifespan=lifespan)
@@ -53,6 +58,8 @@ async def health() -> dict[str, object]:
         "stockfish_available": manager.available,
         "stockfish_path": str(manager.stockfish_path) if manager.stockfish_path else None,
         "opening_positions": opening_book.size,
+        "maia3_available": maia_manager.available,
+        "maia3_path": str(maia_manager.executable_path) if maia_manager.executable_path else None,
     }
 
 
@@ -60,6 +67,10 @@ async def health() -> dict[str, object]:
 async def get_settings() -> SettingsResponse:
     return SettingsResponse(
         stockfish_path=str(manager.stockfish_path) if manager.stockfish_path else None,
+        maia3_available=maia_manager.available,
+        maia3_path=(
+            str(maia_manager.executable_path) if maia_manager.executable_path else None
+        ),
         profiles=manager.profiles,
     )
 
@@ -101,6 +112,17 @@ async def identify_opening(fen: str) -> OpeningInfo | None:
         return opening_book.lookup_fen(fen)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="invalid FEN") from exc
+
+
+@app.post("/api/human-prediction", response_model=HumanPredictionResponse)
+async def human_prediction(request: HumanPredictionRequest) -> HumanPredictionResponse:
+    try:
+        return await maia_manager.predict(request)
+    except MaiaUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("human_prediction_failed")
+        raise HTTPException(status_code=500, detail=f"Maia-3 prediction failed: {exc}") from exc
 
 
 @app.websocket("/ws/extension")

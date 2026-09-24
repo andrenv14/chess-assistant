@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluationToWhitePercent, formatEvaluation } from "./presentation";
+import { evaluationToWhitePercent, formatEvaluation, formatProbability } from "./presentation";
 
 describe("formatEvaluation", () => {
   it("formats centipawns from White's perspective", () => {
@@ -23,5 +23,12 @@ describe("evaluationToWhitePercent", () => {
   it("caps decisive evaluations so both colors remain visible", () => {
     expect(evaluationToWhitePercent(100_000, null)).toBe(97);
     expect(evaluationToWhitePercent(-100_000, null)).toBe(3);
+  });
+});
+
+describe("formatProbability", () => {
+  it("formats a model probability without fake precision", () => {
+    expect(formatProbability(0.456)).toBe("46%");
+    expect(formatProbability(null)).toBe("—");
   });
 });

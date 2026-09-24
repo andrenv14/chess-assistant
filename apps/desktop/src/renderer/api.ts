@@ -5,6 +5,8 @@ import type {
   EngineRole,
   EngineSettings,
   EngineSettingsResponse,
+  HumanPredictionRequest,
+  HumanPredictionResponse,
   MoveClassificationResponse,
 } from "@chess-assistant/contracts";
 
@@ -47,6 +49,16 @@ export function classifyMove(
   payload: ClassifyMoveRequest,
 ): Promise<MoveClassificationResponse> {
   return request("/api/classify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function predictHumanMoves(
+  payload: HumanPredictionRequest,
+): Promise<HumanPredictionResponse> {
+  return request("/api/human-prediction", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

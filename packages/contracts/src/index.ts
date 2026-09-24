@@ -14,6 +14,8 @@ export interface EngineSettings {
 
 export interface EngineSettingsResponse {
   stockfish_path: string | null;
+  maia3_available: boolean;
+  maia3_path: string | null;
   profiles: Record<EngineRole, EngineSettings>;
 }
 
@@ -87,6 +89,30 @@ export interface MoveClassificationResponse {
   evaluation_after_cp: number | null;
   evaluation_after_mate: number | null;
   opening: OpeningInfo | null;
+}
+
+export interface HumanPredictionRequest {
+  fen: string;
+  self_elo: number;
+  opponent_elo: number;
+  multipv: number;
+}
+
+export interface HumanMovePrediction {
+  rank: number;
+  uci: string;
+  san: string;
+  win_probability: number | null;
+  draw_probability: number | null;
+  loss_probability: number | null;
+}
+
+export interface HumanPredictionResponse {
+  fen: string;
+  self_elo: number;
+  opponent_elo: number;
+  model: "maia3-5m";
+  candidates: HumanMovePrediction[];
 }
 
 export interface BrowserPositionEvent {

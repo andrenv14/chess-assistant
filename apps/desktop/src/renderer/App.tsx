@@ -4,13 +4,21 @@ import type {
   EngineRole,
   EngineSettings,
   EngineSettingsResponse,
+  HumanPredictionResponse,
   MoveClassificationResponse,
 } from "@chess-assistant/contracts";
 import { logEvent } from "@chess-assistant/contracts";
 import { useEffect, useRef, useState } from "react";
 
-import { analyzePosition, classifyMove, getSettings, updateSettings, WS_BASE } from "./api";
-import { evaluationToWhitePercent, formatEvaluation } from "./presentation";
+import {
+  analyzePosition,
+  classifyMove,
+  getSettings,
+  predictHumanMoves,
+  updateSettings,
+  WS_BASE,
+} from "./api";
+import { evaluationToWhitePercent, formatEvaluation, formatProbability } from "./presentation";
 
 const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const ROLES: EngineRole[] = ["user", "opponent", "evaluator"];
@@ -94,10 +102,12 @@ export function App() {
   const [actor, setActor] = useState<"user" | "opponent">("user");
   const [settings, setSettings] = useState<EngineSettingsResponse | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
+  const [humanView, setHumanView] = useState<HumanPredictionResponse | null>(null);
   const [lastMove, setLastMove] = useState<MoveClassificationResponse | null>(null);
   const [status, setStatus] = useState("Conectando ao backend…");
   const [busy, setBusy] = useState(false);
   const previousBrowserFen = useRef<string | null>(null);
+  const analysisRequestId = useRef(0);
 
   useEffect(() => {
     void getSettings()
@@ -138,15 +148,35 @@ export function App() {
   }, []);
 
   async function runAnalysis() {
+    const requestId = ++analysisRequestId.current;
     setBusy(true);
     setStatus("Analisando…");
+    setHumanView(null);
     try {
+      const selfRole = actor === "user" ? "user" : "opponent";
+      const opponentRole = actor === "user" ? "opponent" : "user";
+      if (settings?.maia3_available) {
+        void predictHumanMoves({
+          fen,
+          self_elo: settings.profiles[selfRole].elo,
+          opponent_elo: settings.profiles[opponentRole].elo,
+          multipv: Math.min(5, settings.profiles[selfRole].multipv),
+        })
+          .then((humanResult) => {
+            if (analysisRequestId.current === requestId) setHumanView(humanResult);
+          })
+          .catch(() => {
+            logEvent("warn", "human_prediction_skipped", { component: "desktop" });
+          });
+      }
+
       const result = await analyzePosition({
         fen,
         actor,
         include_evaluator: true,
         include_replies: true,
       });
+      if (analysisRequestId.current !== requestId) return;
       setAnalysis(result);
       logEvent("info", "analysis_completed", {
         component: "desktop",
@@ -231,6 +261,26 @@ export function App() {
                 <p className="variation">Linha de referência: {analysis.opening.pgn}</p>
               </article>
             )}
+            {humanView && (
+              <article className="move human-prediction">
+                <p className="eyebrow">PERSPECTIVA HUMANA · MAIA-3</p>
+                <h2>Lances comuns para {humanView.self_elo} Elo</h2>
+                <div className="human-prediction__moves">
+                  {humanView.candidates.map((candidate) => (
+                    <div key={candidate.uci}>
+                      <span className="rank">{candidate.rank}</span>
+                      <b>{candidate.san}</b>
+                      <small>
+                        V {formatProbability(candidate.win_probability)} · E{" "}
+                        {formatProbability(candidate.draw_probability)} · D{" "}
+                        {formatProbability(candidate.loss_probability)}
+                      </small>
+                    </div>
+                  ))}
+                </div>
+                <p className="model-note">Ranking humano; a avaliação objetiva continua sendo do Stockfish.</p>
+              </article>
+            )}
             {analysis?.candidates.map((move, index) => (
               <article className="move" key={move.uci}>
                 <div className="move__heading">
@@ -275,6 +325,9 @@ export function App() {
           <p className="note">
             “user” sugere seus lances, “opponent” calcula as defesas e “evaluator” mantém uma
             referência objetiva.
+          </p>
+          <p className="note">
+            Maia-3 humano: {settings?.maia3_available ? "disponível" : "não instalado (opcional)"}.
           </p>
         </aside>
       </div>

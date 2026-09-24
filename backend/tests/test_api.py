@@ -1,7 +1,7 @@
 import chess
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import app, maia_manager
 
 
 def test_health_and_settings_are_available_without_stockfish() -> None:
@@ -72,3 +72,19 @@ def test_opening_endpoint_rejects_invalid_fen() -> None:
         response = client.get("/api/opening", params={"fen": "not-a-fen"})
 
     assert response.status_code == 422
+
+
+def test_human_prediction_is_explicitly_optional(monkeypatch) -> None:
+    monkeypatch.setattr(maia_manager, "executable_path", None)
+    payload = {
+        "fen": chess.STARTING_FEN,
+        "self_elo": 1500,
+        "opponent_elo": 1600,
+        "multipv": 3,
+    }
+
+    with TestClient(app) as client:
+        response = client.post("/api/human-prediction", json=payload)
+
+    assert response.status_code == 503
+    assert "optional and not installed" in response.json()["detail"]

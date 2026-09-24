@@ -52,6 +52,8 @@ def default_profiles() -> dict[EngineRole, EngineSettings]:
 
 class SettingsResponse(BaseModel):
     stockfish_path: str | None
+    maia3_available: bool
+    maia3_path: str | None
     profiles: dict[EngineRole, EngineSettings]
 
 
@@ -128,6 +130,32 @@ class MoveClassificationResponse(BaseModel):
     evaluation_after_cp: int | None
     evaluation_after_mate: int | None
     opening: OpeningInfo | None = None
+
+
+class HumanPredictionRequest(BaseModel):
+    fen: str
+    self_elo: int = Field(default=1500, ge=0, le=5000)
+    opponent_elo: int = Field(default=1500, ge=0, le=5000)
+    multipv: int = Field(default=5, ge=1, le=20)
+
+    _validate_fen = field_validator("fen")(AnalyzeRequest.validate_fen.__func__)
+
+
+class HumanMovePrediction(BaseModel):
+    rank: int
+    uci: str
+    san: str
+    win_probability: float | None
+    draw_probability: float | None
+    loss_probability: float | None
+
+
+class HumanPredictionResponse(BaseModel):
+    fen: str
+    self_elo: int
+    opponent_elo: int
+    model: Literal["maia3-5m"] = "maia3-5m"
+    candidates: list[HumanMovePrediction]
 
 
 class BrowserPositionEvent(BaseModel):
