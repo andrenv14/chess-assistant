@@ -47,16 +47,46 @@ export interface AnalyzeResponse {
   candidates: MoveAnalysis[];
 }
 
-export type BrowserEvent =
-  | {
-      type: "position";
-      fen: string;
-      source: "lichess-analysis" | "chesscom-analysis" | "manual";
-      at: string;
-    }
-  | {
-      type: "candidate-move";
-      uci: string;
-      source: "lichess-analysis" | "chesscom-analysis";
-      at: string;
-    };
+export type MoveClassificationKey =
+  | "book"
+  | "best"
+  | "excellent"
+  | "good"
+  | "inaccuracy"
+  | "mistake"
+  | "blunder";
+
+export interface ClassifyMoveRequest {
+  before_fen: string;
+  after_fen: string;
+  is_book: boolean;
+}
+
+export interface MoveClassificationResponse {
+  uci: string;
+  san: string;
+  best_move_uci: string;
+  best_move_san: string;
+  classification: MoveClassificationKey;
+  label: string;
+  symbol: string;
+  expected_points_before: number;
+  expected_points_after: number;
+  expected_points_loss: number;
+  evaluation_before_cp: number | null;
+  evaluation_before_mate: number | null;
+  evaluation_after_cp: number | null;
+  evaluation_after_mate: number | null;
+}
+
+export interface BrowserPositionEvent {
+  type: "position";
+  fen: string;
+  source: "lichess-analysis" | "chesscom-analysis" | "manual";
+  at: string;
+}
+
+export type BrowserEvent = BrowserPositionEvent;
+
+export { logEvent } from "./logger";
+export type { LogLevel } from "./logger";

@@ -4,26 +4,19 @@ import type {
   EngineRole,
   EngineSettings,
   EngineSettingsResponse,
+  MoveClassificationResponse,
 } from "@chess-assistant/contracts";
-import { useEffect, useMemo, useState } from "react";
+import { logEvent } from "@chess-assistant/contracts";
+import { useEffect, useRef, useState } from "react";
 
-import { analyzePosition, getSettings, updateSettings, WS_BASE } from "./api";
+import { analyzePosition, classifyMove, getSettings, updateSettings, WS_BASE } from "./api";
+import { evaluationToWhitePercent, formatEvaluation } from "./presentation";
 
 const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const ROLES: EngineRole[] = ["user", "opponent", "evaluator"];
 
-function formatEvaluation(cp: number | null, mate: number | null): string {
-  if (mate !== null) return `M${Math.abs(mate)}`;
-  if (cp === null) return "—";
-  return `${cp >= 0 ? "+" : ""}${(cp / 100).toFixed(2)}`;
-}
-
 function EvalBar({ cp, mate }: { cp: number | null; mate: number | null }) {
-  const whitePercent = useMemo(() => {
-    if (mate !== null) return mate > 0 ? 100 : 0;
-    if (cp === null) return 50;
-    return Math.max(3, Math.min(97, 50 + 50 * (2 / (1 + Math.exp(-cp / 220)) - 1)));
-  }, [cp, mate]);
+  const whitePercent = evaluationToWhitePercent(cp, mate);
 
   return (
     <div className="eval" aria-label={`Avaliação ${formatEvaluation(cp, mate)}`}>
@@ -99,11 +92,12 @@ function ProfileEditor({
 export function App() {
   const [fen, setFen] = useState(INITIAL_FEN);
   const [actor, setActor] = useState<"user" | "opponent">("user");
-  const [candidateMove, setCandidateMove] = useState<string | null>(null);
   const [settings, setSettings] = useState<EngineSettingsResponse | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
+  const [lastMove, setLastMove] = useState<MoveClassificationResponse | null>(null);
   const [status, setStatus] = useState("Conectando ao backend…");
   const [busy, setBusy] = useState(false);
+  const previousBrowserFen = useRef<string | null>(null);
 
   useEffect(() => {
     void getSettings()
@@ -111,14 +105,34 @@ export function App() {
         setSettings(value);
         setStatus(value.stockfish_path ? "Pronto" : "Defina STOCKFISH_PATH no backend");
       })
-      .catch(() => setStatus("Backend desconectado"));
+      .catch(() => {
+        logEvent("error", "settings_load_failed", { component: "desktop" });
+        setStatus("Backend desconectado");
+      });
 
     const socket = new WebSocket(`${WS_BASE}/ws/desktop`);
-    socket.onopen = () => socket.send("desktop-ready");
+    socket.onopen = () => {
+      logEvent("info", "backend_socket_connected", { component: "desktop" });
+      socket.send("desktop-ready");
+    };
+    socket.onclose = () =>
+      logEvent("warn", "backend_socket_disconnected", { component: "desktop" });
     socket.onmessage = (message) => {
       const event = JSON.parse(message.data as string) as BrowserEvent;
-      if (event.type === "position") setFen(event.fen);
-      if (event.type === "candidate-move") setCandidateMove(event.uci);
+      if (event.type !== "position") return;
+
+      const beforeFen = previousBrowserFen.current;
+      previousBrowserFen.current = event.fen;
+      setFen(event.fen);
+
+      if (beforeFen && beforeFen !== event.fen && event.source !== "manual") {
+        void classifyMove({ before_fen: beforeFen, after_fen: event.fen, is_book: false })
+          .then(setLastMove)
+          .catch(() => {
+            logEvent("warn", "move_classification_skipped", { component: "desktop" });
+            setLastMove(null);
+          });
+      }
     };
     return () => socket.close();
   }, []);
@@ -134,8 +148,13 @@ export function App() {
         include_replies: true,
       });
       setAnalysis(result);
+      logEvent("info", "analysis_completed", {
+        component: "desktop",
+        candidateCount: result.candidates.length,
+      });
       setStatus("Análise concluída");
     } catch (error) {
+      logEvent("error", "analysis_failed", { component: "desktop" });
       setStatus(error instanceof Error ? error.message : "Falha na análise");
     } finally {
       setBusy(false);
@@ -183,10 +202,20 @@ export function App() {
             </button>
           </div>
 
-          {candidateMove && (
-            <div className="candidate-banner">
-              Lance que você está considerando: <b>{candidateMove}</b>
-            </div>
+          {lastMove && (
+            <article className={`classification classification--${lastMove.classification}`}>
+              <span className="classification__symbol">{lastMove.symbol}</span>
+              <div>
+                <p className="eyebrow">ÚLTIMO LANCE</p>
+                <h2>
+                  {lastMove.san} — {lastMove.label}
+                </h2>
+                <p>
+                  Perda de expectativa: {(lastMove.expected_points_loss * 100).toFixed(1)} pontos
+                  percentuais. Melhor lance: <b>{lastMove.best_move_san}</b>.
+                </p>
+              </div>
+            </article>
           )}
 
           <div className="moves">

@@ -1,5 +1,10 @@
+from pathlib import Path
+
+import chess
+import chess.engine
+
 from app.engine import StockfishManager
-from app.models import EngineSettings
+from app.models import ClassifyMoveRequest, EngineSettings
 
 
 class FakeEngine:
@@ -47,3 +52,45 @@ def test_full_strength_profile_does_not_send_uci_elo() -> None:
     assert engine.configured is not None
     assert engine.configured["UCI_LimitStrength"] is False
     assert "UCI_Elo" not in engine.configured
+
+
+class FakeAnalysisEngine:
+    def analyse(
+        self,
+        board: chess.Board,
+        _limit: chess.engine.Limit,
+        *,
+        multipv: int,
+    ) -> list[dict[str, object]]:
+        assert multipv == 1
+        if board.turn == chess.WHITE:
+            return [
+                {
+                    "pv": [chess.Move.from_uci("e2e4")],
+                    "score": chess.engine.PovScore(chess.engine.Cp(50), chess.WHITE),
+                }
+            ]
+        return [
+            {
+                "pv": [chess.Move.from_uci("e7e5")],
+                "score": chess.engine.PovScore(chess.engine.Cp(-50), chess.BLACK),
+            }
+        ]
+
+
+def test_classification_keeps_the_movers_perspective(monkeypatch) -> None:
+    before = chess.Board()
+    after = before.copy()
+    after.push_uci("e2e4")
+    manager = StockfishManager(Path("unused-in-this-unit-test"))
+    engine = FakeAnalysisEngine()
+    monkeypatch.setattr(manager, "_get_engine", lambda _role: engine)
+
+    result = manager._classify_move_sync(
+        ClassifyMoveRequest(before_fen=before.fen(), after_fen=after.fen())
+    )
+
+    assert result.uci == "e2e4"
+    assert result.best_move_uci == "e2e4"
+    assert result.classification == "best"
+    assert result.expected_points_loss == 0

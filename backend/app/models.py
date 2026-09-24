@@ -5,6 +5,15 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 EngineRole = Literal["user", "opponent", "evaluator"]
 Actor = Literal["user", "opponent"]
+MoveClassificationKey = Literal[
+    "book",
+    "best",
+    "excellent",
+    "good",
+    "inaccuracy",
+    "mistake",
+    "blunder",
+]
 
 
 class EngineSettings(BaseModel):
@@ -85,6 +94,32 @@ class AnalyzeResponse(BaseModel):
     candidates: list[MoveAnalysis]
 
 
+class ClassifyMoveRequest(BaseModel):
+    before_fen: str
+    after_fen: str
+    is_book: bool = False
+
+    _validate_before = field_validator("before_fen")(AnalyzeRequest.validate_fen.__func__)
+    _validate_after = field_validator("after_fen")(AnalyzeRequest.validate_fen.__func__)
+
+
+class MoveClassificationResponse(BaseModel):
+    uci: str
+    san: str
+    best_move_uci: str
+    best_move_san: str
+    classification: MoveClassificationKey
+    label: str
+    symbol: str
+    expected_points_before: float
+    expected_points_after: float
+    expected_points_loss: float
+    evaluation_before_cp: int | None
+    evaluation_before_mate: int | None
+    evaluation_after_cp: int | None
+    evaluation_after_mate: int | None
+
+
 class BrowserPositionEvent(BaseModel):
     type: Literal["position"]
     fen: str
@@ -94,11 +129,4 @@ class BrowserPositionEvent(BaseModel):
     _validate_fen = field_validator("fen")(AnalyzeRequest.validate_fen.__func__)
 
 
-class BrowserCandidateEvent(BaseModel):
-    type: Literal["candidate-move"]
-    uci: str = Field(pattern=r"^[a-h][1-8][a-h][1-8][qrbn]?$")
-    source: Literal["lichess-analysis", "chesscom-analysis"]
-    at: str
-
-
-BrowserEvent = BrowserPositionEvent | BrowserCandidateEvent
+BrowserEvent = BrowserPositionEvent

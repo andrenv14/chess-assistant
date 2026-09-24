@@ -1,20 +1,27 @@
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import chess
 import chess.engine
 
+from app.classification import classify_expected_points_loss, infer_played_move
+from app.logging_config import get_logger, position_id
 from app.models import (
     AnalyzeRequest,
     AnalyzeResponse,
+    ClassifyMoveRequest,
     EngineRole,
     EngineSettings,
     MoveAnalysis,
+    MoveClassificationResponse,
     ReplyAnalysis,
     default_profiles,
 )
+
+logger = get_logger(__name__)
 
 
 class EngineUnavailableError(RuntimeError):
@@ -50,6 +57,15 @@ class StockfishManager:
 
         async with self._lock:
             return await asyncio.to_thread(self._analyze_sync, request)
+
+    async def classify_move(self, request: ClassifyMoveRequest) -> MoveClassificationResponse:
+        if not self.available:
+            raise EngineUnavailableError(
+                "Stockfish not found. Set STOCKFISH_PATH in backend/.env."
+            )
+
+        async with self._lock:
+            return await asyncio.to_thread(self._classify_move_sync, request)
 
     async def close(self) -> None:
         async with self._lock:
@@ -95,6 +111,7 @@ class StockfishManager:
         )
 
     def _analyze_sync(self, request: AnalyzeRequest) -> AnalyzeResponse:
+        started = perf_counter()
         board = chess.Board(request.fen)
         advisor_role: EngineRole = request.actor
         reply_role: EngineRole = "opponent" if request.actor == "user" else "user"
@@ -132,7 +149,7 @@ class StockfishManager:
             if evaluator_infos:
                 evaluation_cp, evaluation_mate = self._score(evaluator_infos[0]["score"])
 
-        return AnalyzeResponse(
+        response = AnalyzeResponse(
             fen=request.fen,
             actor=request.actor,
             advisor_role=advisor_role,
@@ -141,6 +158,77 @@ class StockfishManager:
             evaluation_mate=evaluation_mate,
             candidates=candidates,
         )
+        logger.info(
+            "analysis_completed",
+            extra={
+                "event_data": {
+                    "position_id": position_id(request.fen),
+                    "actor": request.actor,
+                    "candidate_count": len(candidates),
+                    "duration_ms": round((perf_counter() - started) * 1000),
+                }
+            },
+        )
+        return response
+
+    def _classify_move_sync(self, request: ClassifyMoveRequest) -> MoveClassificationResponse:
+        started = perf_counter()
+        before = chess.Board(request.before_fen)
+        move = infer_played_move(request.before_fen, request.after_fen)
+        mover = before.turn
+        san = before.san(move)
+
+        evaluator_profile = self.profiles["evaluator"]
+        if not evaluator_profile.enabled:
+            raise EngineUnavailableError("engine profile 'evaluator' is disabled")
+        evaluator = self._get_engine("evaluator")
+        limit = self._limit(evaluator_profile)
+
+        before_info = self._first_info(evaluator.analyse(before, limit, multipv=1))
+        best_move: chess.Move = before_info["pv"][0]
+        best_move_san = before.san(best_move)
+        before_cp, before_mate = self._score(before_info["score"])
+        expected_before = self._expected_points(before_info["score"], mover, before.ply())
+
+        after = chess.Board(request.after_fen)
+        after_info = self._first_info(evaluator.analyse(after, limit, multipv=1))
+        after_cp, after_mate = self._score(after_info["score"])
+        expected_after = self._expected_points(after_info["score"], mover, after.ply())
+        expected_loss = max(0.0, expected_before - expected_after)
+        classification = classify_expected_points_loss(
+            expected_loss,
+            is_book=request.is_book,
+        )
+
+        response = MoveClassificationResponse(
+            uci=move.uci(),
+            san=san,
+            best_move_uci=best_move.uci(),
+            best_move_san=best_move_san,
+            classification=classification.key,
+            label=classification.label,
+            symbol=classification.symbol,
+            expected_points_before=expected_before,
+            expected_points_after=expected_after,
+            expected_points_loss=expected_loss,
+            evaluation_before_cp=before_cp,
+            evaluation_before_mate=before_mate,
+            evaluation_after_cp=after_cp,
+            evaluation_after_mate=after_mate,
+        )
+        logger.info(
+            "move_classified",
+            extra={
+                "event_data": {
+                    "position_id": position_id(request.before_fen),
+                    "move": move.uci(),
+                    "classification": classification.key,
+                    "expected_points_loss": round(expected_loss, 4),
+                    "duration_ms": round((perf_counter() - started) * 1000),
+                }
+            },
+        )
+        return response
 
     def _replies(self, board: chess.Board, role: EngineRole) -> list[ReplyAnalysis]:
         profile = self.profiles[role]
@@ -169,6 +257,16 @@ class StockfishManager:
     def _score(score: chess.engine.PovScore) -> tuple[int | None, int | None]:
         white_score = score.white()
         return white_score.score(), white_score.mate()
+
+    @staticmethod
+    def _expected_points(score: chess.engine.PovScore, color: chess.Color, ply: int) -> float:
+        return score.pov(color).wdl(model="sf16.1", ply=ply).expectation()
+
+    @staticmethod
+    def _first_info(
+        raw: dict[str, Any] | list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        return raw[0] if isinstance(raw, list) else raw
 
     @staticmethod
     def _pv_to_san(board: chess.Board, pv: list[chess.Move]) -> list[str]:

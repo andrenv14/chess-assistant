@@ -14,7 +14,8 @@ sem depender das demais.
 - backend FastAPI com Stockfish nativo;
 - perfis independentes `user`, `opponent` e `evaluator`;
 - alteração de Elo/Skill/tempo de análise sem reiniciar o app;
-- extensão Manifest V3 que transmite FEN e lance candidato ao `localhost`;
+- extensão Manifest V3 que transmite snapshots FEN ao `localhost`;
+- reconstrução e classificação do lance efetivamente jogado;
 - contrato pronto para a futura camada de explicações via API.
 
 ## Arquitetura
@@ -80,6 +81,7 @@ marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 - `GET /api/settings` — perfis atuais;
 - `PUT /api/settings/{role}` — muda força durante a sessão;
 - `POST /api/analyze` — calcula melhores lances e respostas;
+- `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
 - `WS /ws/extension` — eventos vindos do navegador;
 - `WS /ws/desktop` — eventos consumidos pelo app.
 
@@ -104,3 +106,9 @@ Exemplo de alteração de força:
 3. adaptadores de tabuleiro mais robustos, começando por Lichess Analysis;
 4. persistência de sessões e histórico de posições;
 5. empacotamento do backend e Stockfish com o app desktop.
+
+## Documentação de engenharia
+
+- [Arquitetura](docs/ARCHITECTURE.md)
+- [Classificação de lances](docs/CLASSIFICATION.md)
+- [Testes, logs e definição de pronto](docs/ENGINEERING.md)

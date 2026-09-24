@@ -4,18 +4,24 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import TypeAdapter, ValidationError
 
+from app.classification import InvalidPositionTransitionError
 from app.config import settings
 from app.engine import EngineUnavailableError, StockfishManager
 from app.hub import EventHub
+from app.logging_config import configure_logging, get_logger
 from app.models import (
     AnalyzeRequest,
     AnalyzeResponse,
     BrowserEvent,
+    ClassifyMoveRequest,
     EngineRole,
     EngineSettings,
+    MoveClassificationResponse,
     SettingsResponse,
 )
 
+configure_logging()
+logger = get_logger(__name__)
 manager = StockfishManager(settings.stockfish_path)
 hub = EventHub()
 browser_event_adapter = TypeAdapter(BrowserEvent)
@@ -68,6 +74,19 @@ async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Stockfish analysis failed: {exc}") from exc
+
+
+@app.post("/api/classify", response_model=MoveClassificationResponse)
+async def classify_move(request: ClassifyMoveRequest) -> MoveClassificationResponse:
+    try:
+        return await manager.classify_move(request)
+    except InvalidPositionTransitionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except EngineUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("move_classification_failed")
+        raise HTTPException(status_code=500, detail=f"Move classification failed: {exc}") from exc
 
 
 @app.websocket("/ws/extension")

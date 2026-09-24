@@ -1,9 +1,11 @@
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
+  ClassifyMoveRequest,
   EngineRole,
   EngineSettings,
   EngineSettingsResponse,
+  MoveClassificationResponse,
 } from "@chess-assistant/contracts";
 
 export const API_BASE = "http://127.0.0.1:8765";
@@ -35,6 +37,16 @@ export function updateSettings(
 
 export function analyzePosition(payload: AnalyzeRequest): Promise<AnalyzeResponse> {
   return request("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function classifyMove(
+  payload: ClassifyMoveRequest,
+): Promise<MoveClassificationResponse> {
+  return request("/api/classify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
