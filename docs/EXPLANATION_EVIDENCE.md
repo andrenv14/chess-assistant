@@ -19,7 +19,7 @@ candidate with deterministic move facts.
 Facts become stable plan-hint identifiers such as `secure_king`,
 `develop_and_coordinate` and `advance_passed_pawn`. Portuguese labels belong to
 the desktop presentation layer; the identifiers remain language-neutral for
-tests and future prompts.
+tests and provider prompts.
 
 ## Authority and non-claims
 
@@ -33,7 +33,7 @@ or change the evaluation of Stockfish candidates.
 
 ## LLM boundary
 
-The future API prompt will receive this structured bundle and must return a
+The API prompt receives this structured bundle and must return a
 schema-validated explanation. It may turn evidence into natural Portuguese,
 but it may not:
 

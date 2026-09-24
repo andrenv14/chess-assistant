@@ -1,7 +1,7 @@
 # Deterministic position evidence
 
 The feature extractor converts a validated FEN into structured facts for the UI
-and future LLM prompts. It does not call Stockfish, Maia or an external service.
+and LLM prompts. It does not call Stockfish, Maia or an external service.
 
 ## Current facts
 
@@ -30,6 +30,6 @@ These are facts or explicitly named heuristics, not an evaluation:
   defender according to the static position. Pins and tactical sequences still
   require engine analysis.
 
-The future explanation layer must label heuristics as such. It must never turn
-them into claims such as “winning”, “forced” or “best” without Stockfish
-evidence.
+The explanation layer labels heuristics as such and its schema excludes fields
+that could replace engine scores or ranks. It must never turn them into claims
+such as “winning”, “forced” or “best” without Stockfish evidence.

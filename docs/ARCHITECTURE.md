@@ -66,4 +66,6 @@ snapshot transport, base move classification, offline opening lookup, position
 and candidate evidence, a schema-validated LLM explanation boundary, and an
 optional Maia-3 UCI adapter. The initial OpenAI Responses API transport is
 implemented but still needs a user-provided key for a live end-to-end test.
-Production-grade site adapters remain planned.
+The analysis-page adapters have been verified against current public Lichess
+and Chess.com markup. Packaging, persistence and installed-extension end-to-end
+tests remain planned.

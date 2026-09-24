@@ -140,6 +140,7 @@ Exemplo de alteração de força:
 
 ## Documentação de engenharia
 
+- [Estado atual e critérios de prontidão](docs/STATUS.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Classificação de lances](docs/CLASSIFICATION.md)
 - [Base local de aberturas](docs/OPENINGS.md)
