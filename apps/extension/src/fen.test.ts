@@ -44,6 +44,23 @@ describe("findFen", () => {
 
     expect(findFen(document, "www.chess.com")).toBe(STARTING_FEN);
   });
+
+  it("reads the live Chess.com engine-panel FEN after analysis loads", () => {
+    const afterE4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
+    document.body.innerHTML = `
+      <div id="board-layout-analysis">
+        <div class="engine-lines-engine-lines-redesign" fen="${afterE4}"></div>
+      </div>`;
+
+    expect(findFen(document, "www.chess.com")).toBe(afterE4);
+  });
+
+  it("rejects a non-FEN value from a Chess.com fen attribute", () => {
+    document.body.innerHTML = `
+      <div id="board-layout-analysis"><div fen="untrusted page text"></div></div>`;
+
+    expect(findFen(document, "www.chess.com")).toBeNull();
+  });
 });
 
 describe("sourceForHostname", () => {

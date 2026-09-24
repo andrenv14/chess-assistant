@@ -12,6 +12,8 @@ const SITE_FEN_SELECTORS: Record<AnalysisSource, string[]> = {
     ".analyse__underboard input.copyable",
   ],
   "chesscom-analysis": [
+    "#board-layout-analysis [fen]",
+    ".engine-lines-engine-lines-redesign[fen]",
     'textarea[placeholder*="PGN, FEN" i]',
     'textarea[aria-label*="FEN" i]',
     'input[aria-label*="FEN" i]',
@@ -29,11 +31,20 @@ export function sourceForHostname(hostname: string): AnalysisSource | null {
   return null;
 }
 
+function elementFen(candidate: Element): string | null {
+  const value =
+    candidate instanceof HTMLInputElement || candidate instanceof HTMLTextAreaElement
+      ? candidate.value
+      : candidate.getAttribute("fen") ?? candidate.getAttribute("data-fen");
+  return value && isFen(value) ? value.trim() : null;
+}
+
 function valueFromSelectors(root: ParentNode, selectors: string[]): string | null {
   for (const selector of selectors) {
-    const candidates = root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(selector);
+    const candidates = root.querySelectorAll(selector);
     for (const candidate of candidates) {
-      if (isFen(candidate.value)) return candidate.value.trim();
+      const fen = elementFen(candidate);
+      if (fen) return fen;
     }
   }
   return null;
@@ -59,6 +70,5 @@ export function findFen(
   }
 
   const fenElement = root.querySelector<HTMLElement>("[data-fen]");
-  const dataFen = fenElement?.dataset.fen;
-  return dataFen && isFen(dataFen) ? dataFen.trim() : null;
+  return fenElement ? elementFen(fenElement) : null;
 }

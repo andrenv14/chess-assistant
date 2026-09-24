@@ -25,9 +25,15 @@ The manifest pattern includes both `/analysis` and deeper analysis URLs.
 ## Chess.com Analysis
 
 The initial loader exposes a textarea labelled “Paste a PGN, FEN, or study
-link…”, which the adapter can read when it contains a complete FEN. Reading the
-live board after the analysis has loaded still needs a dedicated adapter and
-sanitized DOM fixtures; the generic fallback is not considered production-ready.
+link…”, which the adapter can read when it contains a complete FEN. After the
+analysis loads, the engine-lines component exposes the complete live position in
+a `fen` attribute under `#board-layout-analysis`. This was verified on the public
+analysis page on 2026-09-24, including the side to move, castling rights, en
+passant square and move counters after a move.
+
+The adapter reads that attribute directly and validates the complete value. It
+does not rebuild the position from piece CSS classes, screen coordinates or
+pointer movement.
 
 ## Tests and maintenance
 
