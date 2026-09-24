@@ -115,6 +115,55 @@ export interface HumanPredictionResponse {
   candidates: HumanMovePrediction[];
 }
 
+export interface SideMaterial {
+  pawns: number;
+  knights: number;
+  bishops: number;
+  rooks: number;
+  queens: number;
+  value_cp: number;
+}
+
+export interface PawnFeatures {
+  doubled_files: string[];
+  isolated_squares: string[];
+  passed_squares: string[];
+}
+
+export interface KingSafetyFeatures {
+  king_square: string;
+  castled_position: boolean;
+  pawn_shield_count: number;
+  open_nearby_files: string[];
+}
+
+export interface PositionFeaturesRequest {
+  fen: string;
+}
+
+export interface PositionFeaturesResponse {
+  fen: string;
+  phase: "opening" | "middlegame" | "endgame";
+  side_to_move: "white" | "black";
+  material: {
+    white: SideMaterial;
+    black: SideMaterial;
+    balance_cp: number;
+  };
+  white_pawns: PawnFeatures;
+  black_pawns: PawnFeatures;
+  white_king: KingSafetyFeatures;
+  black_king: KingSafetyFeatures;
+  tactics: {
+    side_to_move_in_check: boolean;
+    legal_move_count: number;
+    capture_count: number;
+    checking_moves: string[];
+    white_undefended_attacked: string[];
+    black_undefended_attacked: string[];
+  };
+}
+
 export interface BrowserPositionEvent {
   type: "position";
   fen: string;

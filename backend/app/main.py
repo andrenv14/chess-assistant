@@ -8,6 +8,7 @@ from pydantic import TypeAdapter, ValidationError
 from app.classification import InvalidPositionTransitionError
 from app.config import settings
 from app.engine import EngineUnavailableError, StockfishManager
+from app.features import extract_position_features
 from app.hub import EventHub
 from app.logging_config import configure_logging, get_logger
 from app.maia import MaiaManager, MaiaUnavailableError
@@ -22,6 +23,8 @@ from app.models import (
     HumanPredictionResponse,
     MoveClassificationResponse,
     OpeningInfo,
+    PositionFeaturesRequest,
+    PositionFeaturesResponse,
     SettingsResponse,
 )
 from app.openings import opening_book
@@ -123,6 +126,11 @@ async def human_prediction(request: HumanPredictionRequest) -> HumanPredictionRe
     except Exception as exc:
         logger.exception("human_prediction_failed")
         raise HTTPException(status_code=500, detail=f"Maia-3 prediction failed: {exc}") from exc
+
+
+@app.post("/api/features", response_model=PositionFeaturesResponse)
+async def position_features(request: PositionFeaturesRequest) -> PositionFeaturesResponse:
+    return extract_position_features(request.fen)
 
 
 @app.websocket("/ws/extension")

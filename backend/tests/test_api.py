@@ -88,3 +88,14 @@ def test_human_prediction_is_explicitly_optional(monkeypatch) -> None:
 
     assert response.status_code == 503
     assert "optional and not installed" in response.json()["detail"]
+
+
+def test_position_features_do_not_require_an_engine() -> None:
+    with TestClient(app) as client:
+        response = client.post("/api/features", json={"fen": chess.STARTING_FEN})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase"] == "opening"
+    assert payload["material"]["balance_cp"] == 0
+    assert payload["tactics"]["legal_move_count"] == 20

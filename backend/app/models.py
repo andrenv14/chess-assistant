@@ -158,6 +158,61 @@ class HumanPredictionResponse(BaseModel):
     candidates: list[HumanMovePrediction]
 
 
+class PositionFeaturesRequest(BaseModel):
+    fen: str
+
+    _validate_fen = field_validator("fen")(AnalyzeRequest.validate_fen.__func__)
+
+
+class SideMaterial(BaseModel):
+    pawns: int
+    knights: int
+    bishops: int
+    rooks: int
+    queens: int
+    value_cp: int
+
+
+class MaterialFeatures(BaseModel):
+    white: SideMaterial
+    black: SideMaterial
+    balance_cp: int
+
+
+class PawnFeatures(BaseModel):
+    doubled_files: list[str]
+    isolated_squares: list[str]
+    passed_squares: list[str]
+
+
+class KingSafetyFeatures(BaseModel):
+    king_square: str
+    castled_position: bool
+    pawn_shield_count: int
+    open_nearby_files: list[str]
+
+
+class TacticalFeatures(BaseModel):
+    side_to_move_in_check: bool
+    legal_move_count: int
+    capture_count: int
+    checking_moves: list[str]
+    white_undefended_attacked: list[str]
+    black_undefended_attacked: list[str]
+
+
+class PositionFeaturesResponse(BaseModel):
+    fen: str
+    phase: Literal["opening", "middlegame", "endgame"]
+    side_to_move: Literal["white", "black"]
+    material: MaterialFeatures
+    white_pawns: PawnFeatures
+    black_pawns: PawnFeatures
+    white_king: KingSafetyFeatures
+    black_king: KingSafetyFeatures
+    tactics: TacticalFeatures
+
+
 class BrowserPositionEvent(BaseModel):
     type: Literal["position"]
     fen: str

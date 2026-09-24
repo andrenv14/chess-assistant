@@ -108,6 +108,7 @@ marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 - `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
 - `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
 - `POST /api/human-prediction` — candidatos humanos opcionais via Maia-3;
+- `POST /api/features` — fatos determinísticos da posição para explicações;
 - `WS /ws/extension` — eventos vindos do navegador;
 - `WS /ws/desktop` — eventos consumidos pelo app.
 
@@ -140,4 +141,5 @@ Exemplo de alteração de força:
 - [Base local de aberturas](docs/OPENINGS.md)
 - [Instalação e testes do Stockfish](docs/STOCKFISH.md)
 - [Integração opcional com Maia-3](docs/MAIA3.md)
+- [Evidências determinísticas da posição](docs/POSITION_FEATURES.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)
