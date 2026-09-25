@@ -63,8 +63,11 @@ The resulting placement is not trusted blindly. A stateful `chess.js` tracker
 matches it against every legal successor of the last accepted FEN. That keeps
 side to move, castling rights, en-passant state and move counters consistent.
 When the extension joins an existing game or reloads midgame, it infers a
-conservative initial FEN from the last-move highlights and home king/rook
-placement. A non-starting placement must be identical in two observations
+best-effort initial FEN from the last-move highlights and home king/rook
+placement. Because page markup does not contain the complete move history, a
+rook that moved away and later returned home can make castling rights ambiguous
+on that first snapshot; all subsequent positions are legality-tracked. A
+non-starting placement must be identical in two observations
 before it is accepted, which filters half-rendered animation frames.
 
 Supported route families currently include:
