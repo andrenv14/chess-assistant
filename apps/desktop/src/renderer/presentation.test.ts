@@ -54,6 +54,25 @@ const POSITION_FEATURES: PositionFeaturesResponse = {
     files: { open_files: [], white_semi_open_files: [], black_semi_open_files: [] },
     white_bishop_pair: false,
     black_bishop_pair: false,
+    white_weak_squares: [],
+    black_weak_squares: [],
+    white_potential_outposts: [],
+    black_potential_outposts: [],
+    white_occupied_outposts: [],
+    black_occupied_outposts: [],
+    white_space_count: 0,
+    black_space_count: 0,
+    space_balance: 0,
+    white_rooks_on_open_files: [],
+    black_rooks_on_open_files: [],
+    white_rooks_on_semi_open_files: [],
+    black_rooks_on_semi_open_files: [],
+    white_seventh_rank_rooks: [],
+    black_seventh_rank_rooks: [],
+    white_bad_bishops: [],
+    black_bad_bishops: [],
+    white_pawn_majority_wings: [],
+    black_pawn_majority_wings: [],
   },
   endgame: {
     active: true,
@@ -133,6 +152,17 @@ describe("formatPlanHint", () => {
       moves_passed_pawn: false,
       creates_passed_pawn: false,
       improves_pawn_shield: false,
+      occupies_outpost: false,
+      creates_outpost: false,
+      rook_to_open_file: false,
+      rook_to_seventh_rank: false,
+      pawn_break: false,
+      space_gain: 0,
+      mobility_gain: 0,
+      centralizes_king: false,
+      removed_defender_targets: ["f6"],
+      interfered_attack_targets: ["a1"],
+      connects_rooks: false,
     };
 
     expect(formatPlanHint("fork_pieces", facts)).toBe("garfo em d7 e f7");
@@ -142,6 +172,8 @@ describe("formatPlanHint", () => {
       "abrir ataque descoberto contra a8",
     );
     expect(formatPlanHint("attack_loose_piece", facts)).toBe("atacar d6 sem defesa");
+    expect(formatPlanHint("remove_defender", facts)).toBe("remover o defensor de f6");
+    expect(formatPlanHint("interfere_attack", facts)).toBe("interromper o ataque contra a1");
   });
 });
 
@@ -159,6 +191,7 @@ describe("formatPositionThemes", () => {
         enemy_attackers: ["c5", "h4"],
       },
       strategic: {
+        ...POSITION_FEATURES.strategic,
         files: {
           open_files: ["b"],
           white_semi_open_files: ["d"],

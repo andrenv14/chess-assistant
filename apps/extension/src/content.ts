@@ -1,16 +1,23 @@
 import type { BrowserEvent } from "@chess-assistant/contracts";
 
-import { findFen, sourceForHostname } from "./fen";
+import { PositionReader } from "./fen";
 
-const source = sourceForHostname(location.hostname);
+const reader = new PositionReader();
 let lastFen: string | null = null;
+let lastSource: string | null = null;
 
 function publishPosition(): void {
-  if (!source) return;
-  const fen = findFen();
-  if (!fen || fen === lastFen) return;
-  lastFen = fen;
-  const event: BrowserEvent = { type: "position", fen, source, at: new Date().toISOString() };
+  const position = reader.read();
+  if (!position) return;
+  if (position.fen === lastFen && position.source === lastSource) return;
+  lastFen = position.fen;
+  lastSource = position.source;
+  const event: BrowserEvent = {
+    type: "position",
+    fen: position.fen,
+    source: position.source,
+    at: new Date().toISOString(),
+  };
   void chrome.runtime.sendMessage(event);
 }
 

@@ -109,7 +109,7 @@ def test_extension_event_is_forwarded_to_desktop() -> None:
     event = {
         "type": "position",
         "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "source": "manual",
+        "source": "chesscom-live",
         "at": "2026-09-24T12:00:00Z",
     }
 

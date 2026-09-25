@@ -34,7 +34,11 @@ def test_development_and_center_are_explicit_hints() -> None:
     evidence = build_analysis_evidence(response(board, "g1f3", "e2e4"))
 
     assert evidence.candidates[0].plan_hints == ["develop_and_coordinate"]
-    assert evidence.candidates[1].plan_hints == ["contest_center"]
+    assert evidence.candidates[1].plan_hints == [
+        "contest_center",
+        "create_outpost",
+        "gain_space",
+    ]
     assert evidence.candidates[0].facts.fork_targets == []
     assert evidence.candidates[0].facts.newly_pinned_targets == []
     assert evidence.candidates[0].facts.newly_relative_pinned_targets == []
@@ -47,7 +51,7 @@ def test_castling_is_a_king_safety_hint() -> None:
     evidence = build_analysis_evidence(response(board, "e1g1"))
 
     assert evidence.candidates[0].facts.is_castling is True
-    assert evidence.candidates[0].plan_hints == ["secure_king"]
+    assert evidence.candidates[0].plan_hints == ["secure_king", "connect_rooks"]
 
 
 def test_capture_and_check_are_separate_facts() -> None:
@@ -146,3 +150,52 @@ def test_defended_target_is_not_reported_as_loose() -> None:
 
     assert evidence.candidates[0].facts.newly_attacked_undefended_targets == []
     assert "attack_loose_piece" not in evidence.candidates[0].plan_hints
+
+
+def test_knight_can_occupy_a_stable_pawn_supported_outpost() -> None:
+    board = chess.Board("4k3/8/8/8/2P1PN2/8/8/4K3 w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "f4d5"))
+
+    facts = evidence.candidates[0].facts
+    assert facts.occupies_outpost is True
+    assert "occupy_outpost" in evidence.candidates[0].plan_hints
+
+
+def test_pawn_advance_that_challenges_enemy_pawn_is_a_break() -> None:
+    board = chess.Board("4k3/8/4p3/8/3P4/8/8/4K3 w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "d4d5"))
+
+    assert evidence.candidates[0].facts.pawn_break is True
+    assert "pawn_break" in evidence.candidates[0].plan_hints
+
+
+def test_rook_invasion_on_seventh_rank_is_explicit() -> None:
+    board = chess.Board("4k3/1p6/8/8/8/8/8/R3K3 w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "a1a7"))
+
+    assert evidence.candidates[0].facts.rook_to_seventh_rank is True
+    assert "activate_rook_on_seventh" in evidence.candidates[0].plan_hints
+
+
+def test_king_centralization_is_only_a_final_phase_plan() -> None:
+    board = chess.Board("7k/8/8/8/8/8/8/K7 w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "a1b2"))
+
+    assert evidence.candidates[0].facts.centralizes_king is True
+    assert "centralize_king" in evidence.candidates[0].plan_hints
+
+
+def test_capture_can_remove_the_only_defender_of_a_target() -> None:
+    board = chess.Board("7k/8/5q2/3n3N/2P5/8/8/1K6 w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "c4d5"))
+
+    assert evidence.candidates[0].facts.removed_defender_targets == ["f6"]
+    assert "remove_defender" in evidence.candidates[0].plan_hints
+
+
+def test_quiet_move_can_interfere_with_a_sliding_attack() -> None:
+    board = chess.Board("r3k3/8/8/8/8/8/1B6/Q3K3 w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "b2a3"))
+
+    assert evidence.candidates[0].facts.interfered_attack_targets == ["a1"]
+    assert "interfere_attack" in evidence.candidates[0].plan_hints

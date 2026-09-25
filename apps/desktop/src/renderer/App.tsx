@@ -45,7 +45,9 @@ const ROLE_COPY: Record<EngineRole, { label: string; description: string }> = {
 
 function sourceLabel(source: BrowserEvent["source"]): string {
   if (source === "chesscom-analysis") return "Chess.com conectado";
+  if (source === "chesscom-live") return "Chess.com ao vivo";
   if (source === "lichess-analysis") return "Lichess conectado";
+  if (source === "lichess-live") return "Lichess ao vivo";
   return "Posição manual";
 }
 

@@ -71,6 +71,7 @@ optional Maia-3 UCI adapter. The OpenRouter/OpenResponses transport has passed a
 live end-to-end test with native Stockfish evidence and a structured Gemini 3.8
 Flash response. Engine profiles and recent deterministic analyses now survive a
 backend restart through a bounded local SQLite store.
-The analysis-page adapters have been verified against current public Lichess
-and Chess.com markup. Packaging and installed-extension end-to-end tests remain
-planned.
+The analysis and playable-board adapters have been verified against current
+public Lichess and Chess.com markup. They prefer complete FEN values and use a
+legality-tracked DOM reconstruction when a live board exposes pieces only.
+Packaging and installed-extension end-to-end tests remain planned.

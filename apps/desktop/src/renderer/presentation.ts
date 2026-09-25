@@ -35,6 +35,17 @@ const PLAN_LABELS: Record<PlanHint, string> = {
   create_passed_pawn: "criar um peão passado",
   promote_pawn: "promover o peão",
   improve_king_safety: "reforçar a segurança do rei",
+  occupy_outpost: "instalar uma peça em um outpost estável",
+  create_outpost: "criar uma casa forte para uma peça",
+  exploit_open_file: "ativar a torre em uma coluna aberta ou semiaberta",
+  activate_rook_on_seventh: "invadir a sétima fileira com a torre",
+  pawn_break: "executar uma ruptura de peões",
+  gain_space: "ganhar espaço e restringir as peças adversárias",
+  improve_piece_activity: "melhorar a atividade de uma peça mal colocada",
+  centralize_king: "centralizar o rei no final",
+  remove_defender: "remover um defensor importante",
+  interfere_attack: "interromper uma linha de ataque",
+  connect_rooks: "conectar as torres",
 };
 
 function formatSquares(squares: string[]): string {
@@ -60,6 +71,41 @@ export function formatPositionThemes(position: PositionFeaturesResponse): string
         ? "As brancas têm o par de bispos"
         : "As pretas têm o par de bispos",
     );
+  }
+  if (position.strategic.white_occupied_outposts.length) {
+    themes.push(`Outposts brancos: ${formatSquares(position.strategic.white_occupied_outposts)}`);
+  }
+  if (position.strategic.black_occupied_outposts.length) {
+    themes.push(`Outposts pretos: ${formatSquares(position.strategic.black_occupied_outposts)}`);
+  }
+  if (Math.abs(position.strategic.space_balance) >= 3) {
+    themes.push(
+      position.strategic.space_balance > 0
+        ? "As brancas têm mais espaço útil"
+        : "As pretas têm mais espaço útil",
+    );
+  }
+  if (position.strategic.white_bad_bishops.length) {
+    themes.push(`Bispo branco restringido: ${formatSquares(position.strategic.white_bad_bishops)}`);
+  }
+  if (position.strategic.black_bad_bishops.length) {
+    themes.push(`Bispo preto restringido: ${formatSquares(position.strategic.black_bad_bishops)}`);
+  }
+  if (position.strategic.white_rooks_on_open_files.length) {
+    themes.push(`Torres brancas em colunas abertas: ${formatSquares(position.strategic.white_rooks_on_open_files)}`);
+  }
+  if (position.strategic.black_rooks_on_open_files.length) {
+    themes.push(`Torres pretas em colunas abertas: ${formatSquares(position.strategic.black_rooks_on_open_files)}`);
+  }
+  if (position.strategic.white_pawn_majority_wings.length) {
+    const wings = position.strategic.white_pawn_majority_wings.map((wing) =>
+      wing === "queenside" ? "ala da dama" : "ala do rei");
+    themes.push(`Maioria branca na ${wings.join(" e na ")}`);
+  }
+  if (position.strategic.black_pawn_majority_wings.length) {
+    const wings = position.strategic.black_pawn_majority_wings.map((wing) =>
+      wing === "queenside" ? "ala da dama" : "ala do rei");
+    themes.push(`Maioria preta na ${wings.join(" e na ")}`);
   }
   if (position.white_pawns.pawn_island_count > 1) {
     themes.push(`Brancas: ${position.white_pawns.pawn_island_count} ilhas de peões`);
@@ -116,6 +162,12 @@ export function formatPlanHint(hint: PlanHint, facts?: MoveFacts): string {
   }
   if (hint === "attack_loose_piece" && facts?.newly_attacked_undefended_targets.length) {
     return `atacar ${formatSquares(facts.newly_attacked_undefended_targets)} sem defesa`;
+  }
+  if (hint === "remove_defender" && facts?.removed_defender_targets.length) {
+    return `remover o defensor de ${formatSquares(facts.removed_defender_targets)}`;
+  }
+  if (hint === "interfere_attack" && facts?.interfered_attack_targets.length) {
+    return `interromper o ataque contra ${formatSquares(facts.interfered_attack_targets)}`;
   }
   return PLAN_LABELS[hint];
 }

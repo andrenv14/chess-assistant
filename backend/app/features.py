@@ -204,6 +204,10 @@ def _strategic_features(board: chess.Board) -> StrategicFeatures:
         elif has_white and not has_black:
             black_semi_open.append(file_name)
 
+    white_outposts = _potential_outposts(board, chess.WHITE)
+    black_outposts = _potential_outposts(board, chess.BLACK)
+    white_space = _space_count(board, chess.WHITE)
+    black_space = _space_count(board, chess.BLACK)
     return StrategicFeatures(
         files=FileFeatures(
             open_files=open_files,
@@ -212,7 +216,139 @@ def _strategic_features(board: chess.Board) -> StrategicFeatures:
         ),
         white_bishop_pair=len(board.pieces(chess.BISHOP, chess.WHITE)) >= 2,
         black_bishop_pair=len(board.pieces(chess.BISHOP, chess.BLACK)) >= 2,
+        white_weak_squares=_weak_squares(board, chess.WHITE),
+        black_weak_squares=_weak_squares(board, chess.BLACK),
+        white_potential_outposts=white_outposts,
+        black_potential_outposts=black_outposts,
+        white_occupied_outposts=_occupied_outposts(board, chess.WHITE, white_outposts),
+        black_occupied_outposts=_occupied_outposts(board, chess.BLACK, black_outposts),
+        white_space_count=white_space,
+        black_space_count=black_space,
+        space_balance=white_space - black_space,
+        white_rooks_on_open_files=_rooks_on_files(board, chess.WHITE, open_files),
+        black_rooks_on_open_files=_rooks_on_files(board, chess.BLACK, open_files),
+        white_rooks_on_semi_open_files=_rooks_on_files(board, chess.WHITE, white_semi_open),
+        black_rooks_on_semi_open_files=_rooks_on_files(board, chess.BLACK, black_semi_open),
+        white_seventh_rank_rooks=_seventh_rank_rooks(board, chess.WHITE),
+        black_seventh_rank_rooks=_seventh_rank_rooks(board, chess.BLACK),
+        white_bad_bishops=_bad_bishops(board, chess.WHITE),
+        black_bad_bishops=_bad_bishops(board, chess.BLACK),
+        white_pawn_majority_wings=_pawn_majority_wings(board, chess.WHITE),
+        black_pawn_majority_wings=_pawn_majority_wings(board, chess.BLACK),
     )
+
+
+def _pawn_controls(board: chess.Board, color: chess.Color, square: chess.Square) -> bool:
+    return bool(board.attackers(color, square) & board.pieces(chess.PAWN, color))
+
+
+def _weak_squares(board: chess.Board, color: chess.Color) -> list[str]:
+    """Pawn-controlled holes in the defender's central territory."""
+    ranks = range(1, 4) if color == chess.WHITE else range(4, 7)
+    weak = [
+        chess.square_name(square)
+        for file_index in range(1, 7)
+        for rank_index in ranks
+        if board.piece_at(square := chess.square(file_index, rank_index)) is None
+        and not _pawn_controls(board, color, square)
+        and _pawn_controls(board, not color, square)
+    ]
+    return sorted(weak)
+
+
+def _potential_outposts(board: chess.Board, color: chess.Color) -> list[str]:
+    """Stable advanced squares supported by a pawn and immune to enemy pawns."""
+    ranks = range(3, 6) if color == chess.WHITE else range(2, 5)
+    outposts = [
+        chess.square_name(square)
+        for file_index in range(1, 7)
+        for rank_index in ranks
+        if (
+            (occupant := board.piece_at(square := chess.square(file_index, rank_index))) is None
+            or occupant == chess.Piece(chess.KNIGHT, color)
+        )
+        and _pawn_controls(board, color, square)
+        and not _pawn_controls(board, not color, square)
+    ]
+    return sorted(outposts)
+
+
+def _occupied_outposts(
+    board: chess.Board,
+    color: chess.Color,
+    potential: list[str],
+) -> list[str]:
+    potential_squares = {chess.parse_square(square) for square in potential}
+    return sorted(
+        chess.square_name(square)
+        for square in board.pieces(chess.KNIGHT, color)
+        if square in potential_squares
+    )
+
+
+def _space_count(board: chess.Board, color: chess.Color) -> int:
+    """Count safe pawn-controlled squares in the opponent's half, excluding rim files."""
+    ranks = range(4, 8) if color == chess.WHITE else range(0, 4)
+    controlled = 0
+    for file_index in range(1, 7):
+        for rank_index in ranks:
+            square = chess.square(file_index, rank_index)
+            if _pawn_controls(board, color, square) and not _pawn_controls(
+                board, not color, square
+            ):
+                controlled += 1
+    return controlled
+
+
+def _rooks_on_files(
+    board: chess.Board,
+    color: chess.Color,
+    file_names: list[str],
+) -> list[str]:
+    file_indexes = {FILES.index(file_name) for file_name in file_names}
+    return sorted(
+        chess.square_name(square)
+        for square in board.pieces(chess.ROOK, color)
+        if chess.square_file(square) in file_indexes
+    )
+
+
+def _seventh_rank_rooks(board: chess.Board, color: chess.Color) -> list[str]:
+    target_rank = 6 if color == chess.WHITE else 1
+    return sorted(
+        chess.square_name(square)
+        for square in board.pieces(chess.ROOK, color)
+        if chess.square_rank(square) == target_rank
+    )
+
+
+def _bad_bishops(board: chess.Board, color: chess.Color) -> list[str]:
+    bad: list[str] = []
+    friendly_pawns = board.pieces(chess.PAWN, color)
+    for bishop_square in board.pieces(chess.BISHOP, color):
+        same_color_pawns = sum(
+            _is_light_square(pawn_square) == _is_light_square(bishop_square)
+            for pawn_square in friendly_pawns
+        )
+        mobility = chess.popcount(int(board.attacks(bishop_square)) & ~board.occupied_co[color])
+        if same_color_pawns >= 3 and mobility <= 4:
+            bad.append(chess.square_name(bishop_square))
+    return sorted(bad)
+
+
+def _pawn_majority_wings(board: chess.Board, color: chess.Color) -> list[str]:
+    friendly = board.pieces(chess.PAWN, color)
+    enemy = board.pieces(chess.PAWN, not color)
+    wings = {
+        "queenside": range(0, 4),
+        "kingside": range(4, 8),
+    }
+    return [
+        wing
+        for wing, files in wings.items()
+        if sum(len(friendly & chess.BB_FILES[index]) for index in files)
+        > sum(len(enemy & chess.BB_FILES[index]) for index in files)
+    ]
 
 
 def _endgame_features(board: chess.Board, active: bool) -> EndgameFeatures:

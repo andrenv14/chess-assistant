@@ -143,3 +143,30 @@ def test_marks_castled_king_position_and_shield() -> None:
 
     assert features.white_king.castled_position is True
     assert features.white_king.pawn_shield_count == 3
+
+
+def test_identifies_pawn_supported_outpost_and_weak_square() -> None:
+    outpost = extract_position_features("4k3/8/8/3N4/2P1P3/8/8/4K3 w - - 0 1")
+    weaknesses = extract_position_features("4k3/8/8/2p1p3/8/8/8/4K3 w - - 0 1")
+
+    assert "d5" in outpost.strategic.white_potential_outposts
+    assert outpost.strategic.white_occupied_outposts == ["d5"]
+    assert "d4" in weaknesses.strategic.white_weak_squares
+
+
+def test_reports_space_bad_bishop_and_pawn_majority() -> None:
+    space = extract_position_features("4k3/8/8/8/4P3/8/8/4K3 w - - 0 1")
+    bishop = extract_position_features("4k3/8/8/8/8/8/1P1P1P2/2B1K3 w - - 0 1")
+    majority = extract_position_features("4k3/7p/8/8/8/8/PPP5/4K3 w - - 0 1")
+
+    assert space.strategic.white_space_count == 2
+    assert bishop.strategic.white_bad_bishops == ["c1"]
+    assert majority.strategic.white_pawn_majority_wings == ["queenside"]
+    assert majority.strategic.black_pawn_majority_wings == ["kingside"]
+
+
+def test_reports_rooks_on_open_files_and_seventh_rank() -> None:
+    features = extract_position_features("4k3/R7/8/8/8/8/8/4K3 w - - 0 1")
+
+    assert features.strategic.white_rooks_on_open_files == ["a7"]
+    assert features.strategic.white_seventh_rank_rooks == ["a7"]

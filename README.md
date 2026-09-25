@@ -16,7 +16,7 @@ sem depender das demais.
 - backend FastAPI com Stockfish nativo;
 - perfis independentes `user`, `opponent` e `evaluator`;
 - alteração de Elo/Skill/tempo de análise sem reiniciar o app;
-- extensão Manifest V3 que transmite snapshots FEN ao `localhost`;
+- extensão Manifest V3 que transmite snapshots FEN de análise e partidas ao vivo ao `localhost`;
 - reconstrução e classificação do lance efetivamente jogado;
 - classificação auditável de brilhante, ótimo e oportunidade perdida com
   evidência determinística do Stockfish e do tabuleiro;
@@ -175,6 +175,7 @@ Exemplo de alteração de força:
 - [Instalação e testes do Stockfish](docs/STOCKFISH.md)
 - [Integração opcional com Maia-3](docs/MAIA3.md)
 - [Evidências determinísticas da posição](docs/POSITION_FEATURES.md)
+- [Camada de conhecimento enxadrístico](docs/CHESS_KNOWLEDGE.md)
 - [Evidências por candidato para explicações](docs/EXPLANATION_EVIDENCE.md)
 - [Contrato seguro das explicações por LLM](docs/LLM_EXPLANATIONS.md)
 - [Persistência local e histórico](docs/PERSISTENCE.md)

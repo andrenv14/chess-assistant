@@ -6,13 +6,13 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **97%**;
-- portfolio-ready release: **90%**;
-- full intended product: **87%**.
+- local analysis core: **98%**;
+- portfolio-ready release: **92%**;
+- full intended product: **91%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
-the desktop API and both analysis-page readers work. Release readiness is lower
+the desktop API and both analysis/live-game readers work. Release readiness is lower
 because the Windows installer has not yet been exercised on a clean machine and
 the extension is still loaded unpacked.
 
@@ -33,6 +33,12 @@ the extension is still loaded unpacked.
   squares in the desktop;
 - deterministic pawn islands, connected passers, file structure, bishop pairs,
   king-zone pressure, strict endgame types and direct opposition;
+- deterministic weak squares, stable and occupied outposts, pawn-controlled
+  space, wing majorities, restricted bishops, open-file rooks and seventh-rank
+  rooks;
+- candidate evidence for pawn breaks, outpost creation/occupation, rook
+  activation, space gain, restricted-piece improvement, endgame king
+  centralization, defender removal, line interference and connected rooks;
 - SQLite persistence for runtime profiles and bounded recent analysis history,
   with restore and clear controls in the desktop;
 - Electron-owned backend startup, identity health check and bounded shutdown,
@@ -43,6 +49,11 @@ the extension is still loaded unpacked.
   order enforcement (`google/gemini-3.8-flash`);
 - live 2026-09-25 Lichess and Chess.com Analysis FEN extraction, including an
   `1.e4` update with full turn, castling, en passant and move-counter state;
+- live 2026-09-25 inspection of Chess.com `wc-chess-board` and Lichess
+  `cg-board`, with legality-tracked FEN reconstruction for `/play/*`, `/game/*`,
+  Lichess game IDs, `/tv/*` and `/practice/*`;
+- animation-frame stabilization, midgame-join inference, black-orientation and
+  live-source forwarding tests;
 - live local renderer verification of native Stockfish analysis, runtime Elo
   update, persistence after reload and deterministic history restoration;
 - React UI regression coverage for persisted profiles and history restoration,
@@ -66,11 +77,13 @@ the extension is still loaded unpacked.
 1. Expand the successful real-provider smoke test into a fixed regression set
    covering tactics, strategy, endgames and forced mates.
 2. Exercise the built extension and desktop app together in installed form on
-   both supported analysis pages and at 100%/150% Windows display scaling.
+   analysis, bot, friend and matchmaking pages on both sites, plus 100%/150%
+   Windows display scaling.
 3. Expand the fixed native-Stockfish classification corpus with more defensive
    only-move, missed-win and depth-sensitive positions.
-4. Expand beyond the current tactical/strategic base into weak squares,
-   outposts, clearance/deflection motifs and more specialized endgame concepts.
+4. Expand the new high-level layer into backward pawns, color-complex strategy,
+   overloaded pieces, attraction/deflection sequences and more specialized
+   theoretical endgames.
 5. Exercise the generated Windows installer on a clean machine and add trusted
    code signing.
 6. Add a short scripted portfolio demo and screenshot set from an installed

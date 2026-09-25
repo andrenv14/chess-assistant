@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@chess-assistant/contracts": "*"
+    "@chess-assistant/contracts": "*",
+    "chess.js": "^1.4.0"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.1",

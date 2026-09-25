@@ -118,7 +118,13 @@ export function isBrowserEvent(value: unknown): value is BrowserEvent {
     event.type === "position" &&
     typeof event.fen === "string" &&
     isFen(event.fen) &&
-    ["lichess-analysis", "chesscom-analysis", "manual"].includes(event.source ?? "") &&
+    [
+      "lichess-analysis",
+      "lichess-live",
+      "chesscom-analysis",
+      "chesscom-live",
+      "manual",
+    ].includes(event.source ?? "") &&
     typeof event.at === "string" &&
     !Number.isNaN(Date.parse(event.at))
   );

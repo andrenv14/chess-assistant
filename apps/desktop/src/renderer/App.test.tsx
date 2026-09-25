@@ -194,7 +194,7 @@ describe("App integration surface", () => {
           data: JSON.stringify({
             type: "position",
             fen: liveFen,
-            source: "chesscom-analysis",
+            source: "chesscom-live",
             at: "2026-09-25T12:00:00Z",
           }),
         }),
@@ -205,7 +205,7 @@ describe("App integration surface", () => {
       expect(api.analyzeEvidence).toHaveBeenCalledWith(
         expect.objectContaining({ fen: liveFen, actor: "user" }),
       );
-      expect(document.body.textContent).toContain("Chess.com conectado");
+      expect(document.body.textContent).toContain("Chess.com ao vivo");
       expect(document.body.textContent).toContain("Nf3");
     });
     expect(document.querySelector('[data-square="g1"]')?.classList).toContain(

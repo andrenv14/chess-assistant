@@ -95,7 +95,18 @@ export type PlanHint =
   | "advance_passed_pawn"
   | "create_passed_pawn"
   | "promote_pawn"
-  | "improve_king_safety";
+  | "improve_king_safety"
+  | "occupy_outpost"
+  | "create_outpost"
+  | "exploit_open_file"
+  | "activate_rook_on_seventh"
+  | "pawn_break"
+  | "gain_space"
+  | "improve_piece_activity"
+  | "centralize_king"
+  | "remove_defender"
+  | "interfere_attack"
+  | "connect_rooks";
 
 export interface ClassifyMoveRequest {
   before_fen: string;
@@ -191,6 +202,25 @@ export interface StrategicFeatures {
   files: FileFeatures;
   white_bishop_pair: boolean;
   black_bishop_pair: boolean;
+  white_weak_squares: string[];
+  black_weak_squares: string[];
+  white_potential_outposts: string[];
+  black_potential_outposts: string[];
+  white_occupied_outposts: string[];
+  black_occupied_outposts: string[];
+  white_space_count: number;
+  black_space_count: number;
+  space_balance: number;
+  white_rooks_on_open_files: string[];
+  black_rooks_on_open_files: string[];
+  white_rooks_on_semi_open_files: string[];
+  black_rooks_on_semi_open_files: string[];
+  white_seventh_rank_rooks: string[];
+  black_seventh_rank_rooks: string[];
+  white_bad_bishops: string[];
+  black_bad_bishops: string[];
+  white_pawn_majority_wings: Array<"queenside" | "kingside">;
+  black_pawn_majority_wings: Array<"queenside" | "kingside">;
 }
 
 export interface EndgameFeatures {
@@ -251,6 +281,17 @@ export interface MoveFacts {
   moves_passed_pawn: boolean;
   creates_passed_pawn: boolean;
   improves_pawn_shield: boolean;
+  occupies_outpost: boolean;
+  creates_outpost: boolean;
+  rook_to_open_file: boolean;
+  rook_to_seventh_rank: boolean;
+  pawn_break: boolean;
+  space_gain: number;
+  mobility_gain: number;
+  centralizes_king: boolean;
+  removed_defender_targets: string[];
+  interfered_attack_targets: string[];
+  connects_rooks: boolean;
 }
 
 export interface CandidateEvidence {
@@ -307,7 +348,12 @@ export interface ExplainedAnalysisResponse {
 export interface BrowserPositionEvent {
   type: "position";
   fen: string;
-  source: "lichess-analysis" | "chesscom-analysis" | "manual";
+  source:
+    | "lichess-analysis"
+    | "lichess-live"
+    | "chesscom-analysis"
+    | "chesscom-live"
+    | "manual";
   at: string;
 }
 

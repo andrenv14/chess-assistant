@@ -105,6 +105,17 @@ def describe_candidate(
         moves_passed_pawn=chess.square_name(move.from_square) in before_pawns.passed_squares,
         creates_passed_pawn=False,
         improves_pawn_shield=False,
+        occupies_outpost=False,
+        creates_outpost=False,
+        rook_to_open_file=False,
+        rook_to_seventh_rank=False,
+        pawn_break=False,
+        space_gain=0,
+        mobility_gain=0,
+        centralizes_king=False,
+        removed_defender_targets=[],
+        interfered_attack_targets=[],
+        connects_rooks=False,
     )
 
     after = board.copy(stack=False)
@@ -144,6 +155,80 @@ def describe_candidate(
         set(after_pawns.passed_squares) - set(before_pawns.passed_squares)
     )
     facts.improves_pawn_shield = after_king.pawn_shield_count > before_king.pawn_shield_count
+    before_strategic = before_features.strategic
+    after_strategic = after_features.strategic
+    before_outposts = set(
+        before_strategic.white_potential_outposts
+        if mover == chess.WHITE
+        else before_strategic.black_potential_outposts
+    )
+    after_outposts = set(
+        after_strategic.white_potential_outposts
+        if mover == chess.WHITE
+        else after_strategic.black_potential_outposts
+    )
+    occupied_outposts = set(
+        after_strategic.white_occupied_outposts
+        if mover == chess.WHITE
+        else after_strategic.black_occupied_outposts
+    )
+    facts.occupies_outpost = chess.square_name(move.to_square) in occupied_outposts
+    facts.creates_outpost = bool(after_outposts - before_outposts)
+    mover_open_rooks = set(
+        after_strategic.white_rooks_on_open_files
+        if mover == chess.WHITE
+        else after_strategic.black_rooks_on_open_files
+    )
+    mover_semi_open_rooks = set(
+        after_strategic.white_rooks_on_semi_open_files
+        if mover == chess.WHITE
+        else after_strategic.black_rooks_on_semi_open_files
+    )
+    mover_seventh_rooks = set(
+        after_strategic.white_seventh_rank_rooks
+        if mover == chess.WHITE
+        else after_strategic.black_seventh_rank_rooks
+    )
+    destination = chess.square_name(move.to_square)
+    before_open_rooks = set(
+        before_strategic.white_rooks_on_open_files
+        if mover == chess.WHITE
+        else before_strategic.black_rooks_on_open_files
+    )
+    before_semi_open_rooks = set(
+        before_strategic.white_rooks_on_semi_open_files
+        if mover == chess.WHITE
+        else before_strategic.black_rooks_on_semi_open_files
+    )
+    facts.rook_to_open_file = (
+        piece.piece_type == chess.ROOK
+        and destination in (mover_open_rooks | mover_semi_open_rooks)
+        and chess.square_name(move.from_square) not in (before_open_rooks | before_semi_open_rooks)
+    )
+    facts.rook_to_seventh_rank = (
+        piece.piece_type == chess.ROOK and destination in mover_seventh_rooks
+    )
+    facts.pawn_break = piece.piece_type == chess.PAWN and _is_pawn_break(board, after, move, mover)
+    before_space = (
+        before_strategic.white_space_count
+        if mover == chess.WHITE
+        else before_strategic.black_space_count
+    )
+    after_space = (
+        after_strategic.white_space_count
+        if mover == chess.WHITE
+        else after_strategic.black_space_count
+    )
+    facts.space_gain = max(0, after_space - before_space)
+    facts.mobility_gain = _mobility_gain(board, after, move, piece)
+    facts.centralizes_king = (
+        piece.piece_type == chess.KING
+        and before_features.endgame.active
+        and _center_distance(move.to_square) < _center_distance(move.from_square)
+    )
+    facts.removed_defender_targets = _removed_defender_targets(board, after, move, mover)
+    facts.interfered_attack_targets = _interfered_attack_targets(board, after, move, mover)
+    facts.connects_rooks = not _rooks_connected(board, mover) and _rooks_connected(after, mover)
 
     return CandidateEvidence(
         rank=rank,
@@ -270,10 +355,103 @@ def _sliding_attack_pairs(
     return pairs
 
 
+def _is_pawn_break(
+    before: chess.Board,
+    after: chess.Board,
+    move: chess.Move,
+    mover: chess.Color,
+) -> bool:
+    if before.is_capture(move):
+        captured = _captured_piece(before, move)
+        return captured is not None and captured.piece_type == chess.PAWN
+    enemy_pawns = after.pieces(chess.PAWN, not mover)
+    destination_attacks = after.attacks(move.to_square)
+    return bool(destination_attacks & enemy_pawns) or bool(
+        after.attackers(not mover, move.to_square) & enemy_pawns
+    )
+
+
+def _mobility_gain(
+    before: chess.Board,
+    after: chess.Board,
+    move: chess.Move,
+    piece: chess.Piece,
+) -> int:
+    if piece.piece_type in (chess.PAWN, chess.KING):
+        return 0
+    before_mobility = chess.popcount(
+        int(before.attacks(move.from_square)) & ~before.occupied_co[piece.color]
+    )
+    after_mobility = chess.popcount(
+        int(after.attacks(move.to_square)) & ~after.occupied_co[piece.color]
+    )
+    return after_mobility - before_mobility if before_mobility <= 4 else 0
+
+
+def _center_distance(square: chess.Square) -> int:
+    return min(chess.square_distance(square, center) for center in CENTER_SQUARES)
+
+
+def _removed_defender_targets(
+    before: chess.Board,
+    after: chess.Board,
+    move: chess.Move,
+    mover: chess.Color,
+) -> list[str]:
+    if not before.is_capture(move):
+        return []
+    captured_square = (
+        move.to_square + (-8 if mover == chess.WHITE else 8)
+        if before.is_en_passant(move)
+        else move.to_square
+    )
+    targets: list[str] = []
+    for target_square in chess.SquareSet(before.occupied_co[not mover]):
+        if target_square == captured_square or after.piece_at(target_square) is None:
+            continue
+        if (
+            captured_square in before.attackers(not mover, target_square)
+            and after.attackers(mover, target_square)
+            and not after.attackers(not mover, target_square)
+        ):
+            targets.append(chess.square_name(target_square))
+    return sorted(targets)
+
+
+def _interfered_attack_targets(
+    before: chess.Board,
+    after: chess.Board,
+    move: chess.Move,
+    mover: chess.Color,
+) -> list[str]:
+    if before.is_capture(move):
+        return []
+    removed_pairs = _sliding_attack_pairs(before, not mover) - _sliding_attack_pairs(
+        after, not mover
+    )
+    return sorted(
+        {
+            chess.square_name(target)
+            for attacker, target in removed_pairs
+            if bool(chess.between(attacker, target) & chess.BB_SQUARES[move.to_square])
+        }
+    )
+
+
+def _rooks_connected(board: chess.Board, color: chess.Color) -> bool:
+    rooks = list(board.pieces(chess.ROOK, color))
+    return any(
+        second in board.attacks(first)
+        for first in rooks
+        for second in rooks
+        if first < second
+    )
+
+
 def _plan_hints(facts: MoveFacts) -> list[PlanHint]:
     hints: list[PlanHint] = []
     if facts.gives_checkmate:
-        hints.append("deliver_checkmate")
+        return ["deliver_checkmate"]
     elif facts.gives_check:
         hints.append("force_check_response")
     if facts.fork_targets:
@@ -302,4 +480,26 @@ def _plan_hints(facts: MoveFacts) -> list[PlanHint]:
         hints.append("promote_pawn")
     if facts.improves_pawn_shield and not facts.is_castling:
         hints.append("improve_king_safety")
+    if facts.occupies_outpost:
+        hints.append("occupy_outpost")
+    elif facts.creates_outpost:
+        hints.append("create_outpost")
+    if facts.rook_to_open_file:
+        hints.append("exploit_open_file")
+    if facts.rook_to_seventh_rank:
+        hints.append("activate_rook_on_seventh")
+    if facts.pawn_break:
+        hints.append("pawn_break")
+    if facts.space_gain >= 2:
+        hints.append("gain_space")
+    if facts.mobility_gain >= 3 and not facts.develops_minor_piece:
+        hints.append("improve_piece_activity")
+    if facts.centralizes_king:
+        hints.append("centralize_king")
+    if facts.removed_defender_targets:
+        hints.append("remove_defender")
+    if facts.interfered_attack_targets:
+        hints.append("interfere_attack")
+    if facts.connects_rooks:
+        hints.append("connect_rooks")
     return hints

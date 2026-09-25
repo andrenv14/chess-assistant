@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Chess Assistant — Analysis Bridge",
   "version": "0.1.0",
-  "description": "Envia posições de páginas de análise para o assistente local.",
+  "description": "Envia posições de análise e partidas para o assistente local.",
   "permissions": ["storage"],
   "host_permissions": ["http://127.0.0.1:8765/*"],
   "background": {
@@ -16,8 +16,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://lichess.org/analysis*",
-        "https://www.chess.com/analysis*"
+        "https://lichess.org/*",
+        "https://www.chess.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

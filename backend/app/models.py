@@ -41,6 +41,17 @@ PlanHint = Literal[
     "create_passed_pawn",
     "promote_pawn",
     "improve_king_safety",
+    "occupy_outpost",
+    "create_outpost",
+    "exploit_open_file",
+    "activate_rook_on_seventh",
+    "pawn_break",
+    "gain_space",
+    "improve_piece_activity",
+    "centralize_king",
+    "remove_defender",
+    "interfere_attack",
+    "connect_rooks",
 ]
 
 
@@ -249,6 +260,29 @@ class StrategicFeatures(BaseModel):
     files: FileFeatures
     white_bishop_pair: bool
     black_bishop_pair: bool
+    white_weak_squares: list[str] = Field(default_factory=list)
+    black_weak_squares: list[str] = Field(default_factory=list)
+    white_potential_outposts: list[str] = Field(default_factory=list)
+    black_potential_outposts: list[str] = Field(default_factory=list)
+    white_occupied_outposts: list[str] = Field(default_factory=list)
+    black_occupied_outposts: list[str] = Field(default_factory=list)
+    white_space_count: int = 0
+    black_space_count: int = 0
+    space_balance: int = 0
+    white_rooks_on_open_files: list[str] = Field(default_factory=list)
+    black_rooks_on_open_files: list[str] = Field(default_factory=list)
+    white_rooks_on_semi_open_files: list[str] = Field(default_factory=list)
+    black_rooks_on_semi_open_files: list[str] = Field(default_factory=list)
+    white_seventh_rank_rooks: list[str] = Field(default_factory=list)
+    black_seventh_rank_rooks: list[str] = Field(default_factory=list)
+    white_bad_bishops: list[str] = Field(default_factory=list)
+    black_bad_bishops: list[str] = Field(default_factory=list)
+    white_pawn_majority_wings: list[Literal["queenside", "kingside"]] = Field(
+        default_factory=list
+    )
+    black_pawn_majority_wings: list[Literal["queenside", "kingside"]] = Field(
+        default_factory=list
+    )
 
 
 class EndgameFeatures(BaseModel):
@@ -303,6 +337,17 @@ class MoveFacts(BaseModel):
     moves_passed_pawn: bool
     creates_passed_pawn: bool
     improves_pawn_shield: bool
+    occupies_outpost: bool = False
+    creates_outpost: bool = False
+    rook_to_open_file: bool = False
+    rook_to_seventh_rank: bool = False
+    pawn_break: bool = False
+    space_gain: int = 0
+    mobility_gain: int = 0
+    centralizes_king: bool = False
+    removed_defender_targets: list[str] = Field(default_factory=list)
+    interfered_attack_targets: list[str] = Field(default_factory=list)
+    connects_rooks: bool = False
 
 
 class CandidateEvidence(BaseModel):
@@ -366,7 +411,13 @@ class ExplainedAnalysisResponse(BaseModel):
 class BrowserPositionEvent(BaseModel):
     type: Literal["position"]
     fen: str
-    source: Literal["lichess-analysis", "chesscom-analysis", "manual"]
+    source: Literal[
+        "lichess-analysis",
+        "lichess-live",
+        "chesscom-analysis",
+        "chesscom-live",
+        "manual",
+    ]
     at: str
 
     _validate_fen = field_validator("fen")(AnalyzeRequest.validate_fen.__func__)
