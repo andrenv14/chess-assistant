@@ -96,6 +96,7 @@ app.add_middleware(
 async def health() -> dict[str, object]:
     return {
         "status": "ok",
+        "service": "chess-assistant-backend",
         "stockfish_available": manager.available,
         "stockfish_path": str(manager.stockfish_path) if manager.stockfish_path else None,
         "opening_positions": opening_book.size,

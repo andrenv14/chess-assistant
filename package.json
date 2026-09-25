@@ -12,6 +12,7 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:desktop": "npm run dev --workspace @chess-assistant/desktop",
+    "smoke:desktop-backend": "npm run smoke:backend --workspace @chess-assistant/desktop",
     "build:extension": "npm run build --workspace @chess-assistant/extension"
   },
   "engines": {

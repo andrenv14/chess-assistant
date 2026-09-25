@@ -26,6 +26,7 @@ def test_health_and_settings_are_available_without_stockfish() -> None:
 
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
+    assert health.json()["service"] == "chess-assistant-backend"
     assert health.json()["opening_positions"] >= 3_800
     assert health.json()["storage_available"] is True
     assert health.json()["history_count"] == 0

@@ -46,6 +46,8 @@ Lichess adapter ───┘                         │
 
 ### Desktop app
 
+- start and health-check the Python backend when no verified instance exists;
+- stop only a backend process owned by this Electron session;
 - present engine output without changing its meaning;
 - allow runtime configuration of each engine role;
 - show pre-move options and post-move classification separately;

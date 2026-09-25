@@ -84,18 +84,22 @@ cd backend
 
 ## Desenvolvimento
 
-Em um terminal:
-
-```powershell
-cd backend
-.venv\Scripts\Activate.ps1
-uvicorn app.main:app --reload --port 8765
-```
-
-Em outro terminal:
+O Electron inicia e encerra o backend local automaticamente. Depois da
+instalação, um único comando abre o ambiente de desenvolvimento completo:
 
 ```powershell
 npm run dev:desktop
+```
+
+Se já existir uma instância saudável em `127.0.0.1:8765`, o desktop a reutiliza
+e não a encerra ao sair. Para usar outro Python ou diretório de backend, defina
+`CHESS_ASSISTANT_PYTHON` ou `CHESS_ASSISTANT_BACKEND_DIR` no ambiente.
+
+O smoke test abaixo compila o desktop, inicia o backend real, valida saúde e
+persistência temporária e encerra o processo criado:
+
+```powershell
+npm run smoke:desktop-backend
 ```
 
 Para gerar a extensão:

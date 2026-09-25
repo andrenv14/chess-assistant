@@ -6,15 +6,15 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **88%**;
-- portfolio-ready release: **65%**;
-- full intended product: **68%**.
+- local analysis core: **89%**;
+- portfolio-ready release: **69%**;
+- full intended product: **70%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
 the desktop API and both analysis-page readers work. Release readiness is lower
-because the user still starts multiple processes manually and loads an unpacked
-extension.
+because the Python runtime is not packaged yet and the extension is still loaded
+unpacked.
 
 ## Verified today
 
@@ -29,6 +29,8 @@ extension.
   king-zone pressure, strict endgame types and direct opposition;
 - SQLite persistence for runtime profiles and bounded recent analysis history,
   with restore and clear controls in the desktop;
+- Electron-owned backend startup, identity health check and bounded shutdown,
+  verified by a reproducible real-process smoke test;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
   order enforcement (`google/gemini-3.8-flash`);
 - current Lichess Analysis and Chess.com Analysis FEN extraction;

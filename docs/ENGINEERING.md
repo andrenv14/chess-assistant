@@ -9,6 +9,7 @@ land together. Required checks are:
 npm run typecheck
 npm test
 npm run build
+npm run smoke:desktop-backend
 
 cd backend
 .venv\Scripts\python.exe -m ruff check app tests
@@ -20,6 +21,10 @@ every push to `main` and on every pull request. It uses read-only repository
 permissions, cancels superseded runs and enforces a 15-minute timeout per job.
 Native Stockfish integration stays in the explicit local command below because
 the fast CI job does not download an engine binary.
+
+The desktop/backend smoke test compiles the Electron main process, launches the
+real local Python service, requires the application-specific health identity and
+working temporary SQLite storage, and then stops only the process it created.
 
 ## Testing strategy
 
