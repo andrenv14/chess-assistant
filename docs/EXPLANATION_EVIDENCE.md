@@ -8,7 +8,11 @@ candidate with deterministic move facts.
 ## Candidate facts
 
 - capture and captured piece type;
-- check;
+- check and immediate checkmate;
+- high-value pieces simultaneously attacked by the moved piece (fork targets);
+- newly created absolute pins against the king;
+- newly attacked enemy knights, bishops, rooks or queens without a same-color
+  defender;
 - castling;
 - promotion;
 - minor-piece development from its home square;
@@ -16,17 +20,25 @@ candidate with deterministic move facts.
 - passed-pawn advance or creation;
 - immediate improvement in the king's pawn shield.
 
-Facts become stable plan-hint identifiers such as `secure_king`,
-`develop_and_coordinate` and `advance_passed_pawn`. Portuguese labels belong to
-the desktop presentation layer; the identifiers remain language-neutral for
-tests and provider prompts.
+Facts become stable plan-hint identifiers such as `secure_king`, `fork_pieces`,
+`pin_piece`, `deliver_checkmate` and `advance_passed_pawn`. Portuguese labels
+belong to the desktop presentation layer; the identifiers remain
+language-neutral for tests and provider prompts.
 
 ## Authority and non-claims
 
-The hint `trade_or_win_material` means only that the candidate captures a
-piece. Whether the exchange wins, loses or merely trades material must come
-from the Stockfish evaluation and principal variation. Likewise, a check is
-described as forcing a king response, not automatically as a good move.
+The hint `capture_or_exchange_material` means only that the candidate captures
+a piece. Whether the exchange wins, loses or merely trades material must come
+from the Stockfish evaluation and principal variation. Likewise,
+`force_check_response` only says that the opponent must answer the check; it
+does not claim that the king itself must move or that the checking move is good.
+
+`fork_pieces` is deliberately conservative: the moved piece must attack at
+least two enemy knights, bishops, rooks, queens or kings, and at least one of
+those attacks must be new. `pin_piece` means an absolute pin to the king. These
+facts identify geometry; Stockfish still decides whether the tactic is sound.
+`attack_loose_piece` uses the same conservative high-value piece set and does
+not label an undefended pawn as a loose piece.
 
 Maia output is never an input to this endpoint. Maia cannot add, remove, rerank
 or change the evaluation of Stockfish candidates.

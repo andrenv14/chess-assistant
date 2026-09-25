@@ -71,8 +71,12 @@ export type MoveClassificationKey =
   | "blunder";
 
 export type PlanHint =
-  | "force_king_response"
-  | "trade_or_win_material"
+  | "deliver_checkmate"
+  | "force_check_response"
+  | "fork_pieces"
+  | "pin_piece"
+  | "attack_loose_piece"
+  | "capture_or_exchange_material"
   | "secure_king"
   | "develop_and_coordinate"
   | "contest_center"
@@ -172,6 +176,9 @@ export interface PositionFeaturesResponse {
     legal_move_count: number;
     capture_count: number;
     checking_moves: string[];
+    mate_in_one_moves: string[];
+    white_pinned: string[];
+    black_pinned: string[];
     white_undefended_attacked: string[];
     black_undefended_attacked: string[];
   };
@@ -181,6 +188,10 @@ export interface MoveFacts {
   is_capture: boolean;
   captured_piece: string | null;
   gives_check: boolean;
+  gives_checkmate: boolean;
+  fork_targets: string[];
+  newly_pinned_targets: string[];
+  newly_attacked_undefended_targets: string[];
   is_castling: boolean;
   promotion_piece: string | null;
   develops_minor_piece: boolean;

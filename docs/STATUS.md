@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **80%**;
-- portfolio-ready release: **57%**;
-- full intended product: **59%**.
+- local analysis core: **82%**;
+- portfolio-ready release: **58%**;
+- full intended product: **61%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -23,6 +23,8 @@ extension.
 - reconstruction and base classification of the played move;
 - 3,815 local Lichess opening positions;
 - deterministic position and candidate facts;
+- deterministic mate-in-one, fork, absolute-pin and loose-piece motifs with
+  concrete target squares in the desktop;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
   order enforcement (`google/gemini-3.8-flash`);
 - current Lichess Analysis and Chess.com Analysis FEN extraction;
@@ -38,8 +40,9 @@ extension.
    both supported analysis pages.
 3. Expand move labels beyond the current objective loss bands where evidence
    can support labels such as brilliant, great or missed opportunity.
-4. Add richer tactical motifs, strategic structures, endgame concepts and
-   king-safety explanations with regression fixtures.
+4. Expand beyond the current mate-in-one, fork, absolute-pin and loose-piece
+   motifs; add strategic structures, endgame concepts and richer king-safety
+   explanations with regression fixtures.
 5. Persist settings and analysis history.
 6. Package the desktop, backend and licensed Stockfish distribution into a
    repeatable Windows installation and test it on a clean machine.

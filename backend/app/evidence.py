@@ -71,10 +71,17 @@ def describe_candidate(
     before_king = before_features.white_king if mover == chess.WHITE else before_features.black_king
     captured_piece = _captured_piece(board, move)
 
+    before_attacks = _valuable_targets_attacked_by(board, move.from_square, not mover)
+    before_pinned = set(_pinned_targets(board, not mover))
+
     facts = MoveFacts(
         is_capture=board.is_capture(move),
         captured_piece=chess.piece_name(captured_piece.piece_type) if captured_piece else None,
         gives_check=board.gives_check(move),
+        gives_checkmate=False,
+        fork_targets=[],
+        newly_pinned_targets=[],
+        newly_attacked_undefended_targets=[],
         is_castling=board.is_castling(move),
         promotion_piece=chess.piece_name(move.promotion) if move.promotion else None,
         develops_minor_piece=(
@@ -89,6 +96,21 @@ def describe_candidate(
 
     after = board.copy(stack=False)
     after.push(move)
+    after_attacks = _valuable_targets_attacked_by(after, move.to_square, not mover)
+    newly_attacked = after_attacks - before_attacks
+    facts.gives_checkmate = after.is_checkmate()
+    if len(after_attacks) >= 2 and newly_attacked:
+        facts.fork_targets = sorted(chess.square_name(square) for square in after_attacks)
+    facts.newly_pinned_targets = sorted(
+        chess.square_name(square)
+        for square in set(_pinned_targets(after, not mover)) - before_pinned
+    )
+    facts.newly_attacked_undefended_targets = sorted(
+        chess.square_name(square)
+        for square in newly_attacked
+        if after.piece_type_at(square) != chess.KING
+        and not after.attackers(not mover, square)
+    )
     after_features = extract_position_features(after.fen())
     after_pawns = after_features.white_pawns if mover == chess.WHITE else after_features.black_pawns
     after_king = after_features.white_king if mover == chess.WHITE else after_features.black_king
@@ -115,12 +137,49 @@ def _captured_piece(board: chess.Board, move: chess.Move) -> chess.Piece | None:
     return board.piece_at(move.to_square)
 
 
+def _valuable_targets_attacked_by(
+    board: chess.Board,
+    attacker_square: chess.Square,
+    target_color: chess.Color,
+) -> set[chess.Square]:
+    valuable_types = {
+        chess.KNIGHT,
+        chess.BISHOP,
+        chess.ROOK,
+        chess.QUEEN,
+        chess.KING,
+    }
+    return {
+        square
+        for square in board.attacks(attacker_square)
+        if (piece := board.piece_at(square)) is not None
+        and piece.color == target_color
+        and piece.piece_type in valuable_types
+    }
+
+
+def _pinned_targets(board: chess.Board, color: chess.Color) -> list[chess.Square]:
+    return [
+        square
+        for square in chess.SquareSet(board.occupied_co[color])
+        if board.piece_type_at(square) != chess.KING and board.is_pinned(color, square)
+    ]
+
+
 def _plan_hints(facts: MoveFacts) -> list[PlanHint]:
     hints: list[PlanHint] = []
-    if facts.gives_check:
-        hints.append("force_king_response")
+    if facts.gives_checkmate:
+        hints.append("deliver_checkmate")
+    elif facts.gives_check:
+        hints.append("force_check_response")
+    if facts.fork_targets:
+        hints.append("fork_pieces")
+    if facts.newly_pinned_targets:
+        hints.append("pin_piece")
+    if facts.newly_attacked_undefended_targets:
+        hints.append("attack_loose_piece")
     if facts.is_capture:
-        hints.append("trade_or_win_material")
+        hints.append("capture_or_exchange_material")
     if facts.is_castling:
         hints.append("secure_king")
     if facts.develops_minor_piece:

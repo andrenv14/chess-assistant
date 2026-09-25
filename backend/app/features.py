@@ -167,13 +167,31 @@ def _undefended_attacked(board: chess.Board, color: chess.Color) -> list[str]:
     return sorted(squares)
 
 
+def _pinned_pieces(board: chess.Board, color: chess.Color) -> list[str]:
+    return sorted(
+        chess.square_name(square)
+        for square in chess.SquareSet(board.occupied_co[color])
+        if board.piece_type_at(square) != chess.KING and board.is_pinned(color, square)
+    )
+
+
 def _tactical_features(board: chess.Board) -> TacticalFeatures:
     legal_moves = list(board.legal_moves)
+    checking_moves = [move for move in legal_moves if board.gives_check(move)]
+    mate_in_one_moves: list[str] = []
+    for move in checking_moves:
+        after = board.copy(stack=False)
+        after.push(move)
+        if after.is_checkmate():
+            mate_in_one_moves.append(move.uci())
     return TacticalFeatures(
         side_to_move_in_check=board.is_check(),
         legal_move_count=len(legal_moves),
         capture_count=sum(board.is_capture(move) for move in legal_moves),
-        checking_moves=sorted(move.uci() for move in legal_moves if board.gives_check(move)),
+        checking_moves=sorted(move.uci() for move in checking_moves),
+        mate_in_one_moves=sorted(mate_in_one_moves),
+        white_pinned=_pinned_pieces(board, chess.WHITE),
+        black_pinned=_pinned_pieces(board, chess.BLACK),
         white_undefended_attacked=_undefended_attacked(board, chess.WHITE),
         black_undefended_attacked=_undefended_attacked(board, chess.BLACK),
     )

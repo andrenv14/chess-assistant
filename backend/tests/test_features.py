@@ -35,6 +35,32 @@ def test_reports_checking_moves_as_uci_facts() -> None:
     assert "e2e7" in features.tactics.checking_moves
 
 
+def test_reports_absolute_pins() -> None:
+    features = extract_position_features("4k3/8/2n5/1B6/8/8/8/4K3 b - - 0 1")
+
+    assert features.tactics.black_pinned == ["c6"]
+    assert features.tactics.white_pinned == []
+
+
+def test_does_not_call_a_relative_queen_alignment_an_absolute_pin() -> None:
+    features = extract_position_features("4q1k1/8/2n5/1B6/8/8/8/4K3 b - - 0 1")
+
+    assert features.tactics.black_pinned == []
+
+
+def test_reports_mate_in_one_as_a_legal_move_fact() -> None:
+    features = extract_position_features("7k/8/5KQ1/8/8/8/8/8 w - - 0 1")
+
+    assert "g6g7" in features.tactics.mate_in_one_moves
+    assert set(features.tactics.mate_in_one_moves) <= set(features.tactics.checking_moves)
+
+
+def test_reports_mate_in_one_for_black() -> None:
+    features = extract_position_features("8/8/8/8/8/5kq1/8/7K b - - 0 1")
+
+    assert "g3g2" in features.tactics.mate_in_one_moves
+
+
 def test_marks_castled_king_position_and_shield() -> None:
     features = extract_position_features("4k3/8/8/8/8/8/5PPP/5RK1 w - - 0 1")
 

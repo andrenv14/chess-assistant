@@ -364,7 +364,7 @@ export function App() {
                     <div className="plan-hints">
                       <span>Ideias verificadas</span>
                       {evidence.plan_hints.map((hint) => (
-                        <small key={hint}>{formatPlanHint(hint)}</small>
+                        <small key={hint}>{formatPlanHint(hint, evidence.facts)}</small>
                       ))}
                     </div>
                   )}

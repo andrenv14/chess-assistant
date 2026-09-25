@@ -15,8 +15,12 @@ MoveClassificationKey = Literal[
     "blunder",
 ]
 PlanHint = Literal[
-    "force_king_response",
-    "trade_or_win_material",
+    "deliver_checkmate",
+    "force_check_response",
+    "fork_pieces",
+    "pin_piece",
+    "attack_loose_piece",
+    "capture_or_exchange_material",
     "secure_king",
     "develop_and_coordinate",
     "contest_center",
@@ -210,6 +214,9 @@ class TacticalFeatures(BaseModel):
     legal_move_count: int
     capture_count: int
     checking_moves: list[str]
+    mate_in_one_moves: list[str]
+    white_pinned: list[str]
+    black_pinned: list[str]
     white_undefended_attacked: list[str]
     black_undefended_attacked: list[str]
 
@@ -230,6 +237,10 @@ class MoveFacts(BaseModel):
     is_capture: bool
     captured_piece: str | None
     gives_check: bool
+    gives_checkmate: bool
+    fork_targets: list[str]
+    newly_pinned_targets: list[str]
+    newly_attacked_undefended_targets: list[str]
     is_castling: bool
     promotion_piece: str | None
     develops_minor_piece: bool
