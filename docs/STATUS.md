@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **95%**;
-- portfolio-ready release: **84%**;
-- full intended product: **83%**.
+- local analysis core: **97%**;
+- portfolio-ready release: **90%**;
+- full intended product: **87%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -47,6 +47,10 @@ the extension is still loaded unpacked.
   update, persistence after reload and deterministic history restoration;
 - React UI regression coverage for persisted profiles and history restoration,
   plus extension popup validation and delivery states;
+- responsive analysis cockpit with a FEN board, candidate arrows, move
+  selection, progressive engine controls, keyboard shortcuts and reduced-motion
+  support;
+- automatic live-position analysis with an end-to-end mocked WebSocket UI test;
 - TypeScript contracts, structured redacted logs and engineering documentation;
 - local Ruff, Pytest, Vitest, typecheck and production builds;
 - GitHub Actions checks for every push to `main` and every pull request,
@@ -55,21 +59,22 @@ the extension is still loaded unpacked.
   the official Stockfish binary, license and corresponding source;
 - reproducible unpacked Electron and NSIS installer builds, plus a packaged
   backend smoke test and a successful real analysis launched by the final app;
+- original vector application icon converted by the Windows packaging pipeline;
 
 ## Required before calling it portfolio-ready
 
 1. Expand the successful real-provider smoke test into a fixed regression set
    covering tactics, strategy, endgames and forced mates.
 2. Exercise the built extension and desktop app together in installed form on
-   both supported analysis pages.
+   both supported analysis pages and at 100%/150% Windows display scaling.
 3. Expand the fixed native-Stockfish classification corpus with more defensive
    only-move, missed-win and depth-sensitive positions.
 4. Expand beyond the current tactical/strategic base into weak squares,
    outposts, clearance/deflection motifs and more specialized endgame concepts.
-5. Exercise the generated Windows installer on a clean machine, add a release
-   icon and trusted code signing, and document upgrade/uninstall behavior.
-6. Expand UI regression into the live WebSocket analysis/classification flow
-   and add a short portfolio demo.
+5. Exercise the generated Windows installer on a clean machine and add trusted
+   code signing.
+6. Add a short scripted portfolio demo and screenshot set from an installed
+   build.
 
 Maia-3 is outside the critical path. It remains optional and can never change
 Stockfish candidates, evaluation, rank or post-move classification.

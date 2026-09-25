@@ -36,8 +36,10 @@
     "appId": "dev.andrenv14.chessassistant",
     "productName": "Chess Assistant",
     "asar": true,
+    "electronDist": "../../node_modules/electron/dist",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist-electron/**",
@@ -51,6 +53,7 @@
       }
     ],
     "win": {
+      "icon": "build/icon.svg",
       "target": [
         "nsis"
       ],

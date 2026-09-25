@@ -8,6 +8,13 @@ does not require a global Python, Node.js or Stockfish installation.
 2. Electron Builder places that backend beside the packaged Electron resources
    and creates a per-user NSIS installer.
 
+Electron Builder stages the Electron runtime already installed by `npm` through
+the configured `electronDist` directory. This avoids a redundant download and
+extraction on every package run and improves offline reproducibility. The Vite
+development watcher explicitly ignores `release` and `dist-electron`, so a
+running renderer does not lock packaging output while Electron Builder replaces
+it.
+
 The desktop process prefers the packaged `chess-assistant-backend.exe`. A
 Python/uvicorn launch remains the development fallback, and
 `CHESS_ASSISTANT_PYTHON` can still force a diagnostic runtime.
@@ -51,6 +58,25 @@ Release artifacts must not contain `.env`, the local SQLite database or API
 keys. User data continues to live under `%LOCALAPPDATA%\ChessAssistant`.
 Current local artifacts are not code-signed with a trusted publisher
 certificate, so Windows SmartScreen may warn until release signing is added.
+
+## Upgrade and uninstall behavior
+
+The stable `appId` (`dev.andrenv14.chessassistant`) gives NSIS a deterministic
+application identity. A later installer with the same app ID and a higher
+version upgrades that installation instead of creating an unrelated product.
+Changing the app ID is therefore a breaking packaging change.
+
+The installer removes application binaries and its shortcuts on uninstall, but
+local user data is deliberately preserved. Profiles and analysis history live
+in `%LOCALAPPDATA%\ChessAssistant\chess-assistant.sqlite3`; API credentials are
+never written to that database. History can be cleared from inside the desktop.
+For a complete manual reset after uninstall, the user may remove the
+`%LOCALAPPDATA%\ChessAssistant` directory after deciding that its local history
+and profiles are no longer needed.
+
+This preservation policy prevents a normal upgrade or reinstall from silently
+destroying analysis history. A future installer must not change it without an
+explicit migration and release-note entry.
 
 ## Verification checklist
 

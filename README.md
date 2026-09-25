@@ -181,3 +181,4 @@ Exemplo de alteração de força:
 - [Adaptadores do Lichess e Chess.com](docs/SITE_ADAPTERS.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)
 - [Empacotamento e instalação Windows](docs/PACKAGING.md)
+- [Experiência desktop, responsividade e acessibilidade](docs/UX.md)

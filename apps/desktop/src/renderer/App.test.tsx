@@ -35,11 +35,14 @@ const PROFILE = {
 };
 
 class FakeWebSocket {
+  static last: FakeWebSocket | null = null;
   onopen: (() => void) | null = null;
   onclose: (() => void) | null = null;
   onmessage: ((message: MessageEvent) => void) | null = null;
 
-  constructor(_url: string) {}
+  constructor(_url: string) {
+    FakeWebSocket.last = this;
+  }
 
   send(): void {}
   close(): void {}
@@ -51,6 +54,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   vi.stubGlobal("WebSocket", FakeWebSocket);
+  FakeWebSocket.last = null;
   api.getSettings.mockResolvedValue({
     stockfish_path: "stockfish",
     maia3_available: false,
@@ -142,6 +146,113 @@ describe("App integration surface", () => {
         expect.objectContaining({ elo: 1710 }),
       );
       expect(document.body.textContent).toContain("Força de user salva e aplicada sem reiniciar");
+    });
+  });
+
+  it("auto-analyzes a live browser position and previews selectable candidates", async () => {
+    const liveFen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
+    api.analyzeEvidence.mockResolvedValue({
+      analysis: {
+        fen: liveFen,
+        actor: "user",
+        advisor_role: "user",
+        reply_role: "opponent",
+        evaluation_cp: 24,
+        evaluation_mate: null,
+        opening: null,
+        candidates: [
+          {
+            uci: "g1f3",
+            san: "Nf3",
+            score_cp: 24,
+            mate: null,
+            pv_uci: ["g1f3"],
+            pv_san: ["Nf3"],
+            replies: [],
+          },
+          {
+            uci: "f1c4",
+            san: "Bc4",
+            score_cp: 18,
+            mate: null,
+            pv_uci: ["f1c4"],
+            pv_san: ["Bc4"],
+            replies: [],
+          },
+        ],
+      },
+      position: undefined,
+      candidates: [],
+    });
+
+    await act(async () => root?.render(<App />));
+    await vi.waitFor(() => expect(FakeWebSocket.last).not.toBeNull());
+
+    await act(async () => {
+      FakeWebSocket.last?.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "position",
+            fen: liveFen,
+            source: "chesscom-analysis",
+            at: "2026-09-25T12:00:00Z",
+          }),
+        }),
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(api.analyzeEvidence).toHaveBeenCalledWith(
+        expect.objectContaining({ fen: liveFen, actor: "user" }),
+      );
+      expect(document.body.textContent).toContain("Chess.com conectado");
+      expect(document.body.textContent).toContain("Nf3");
+    });
+    expect(document.querySelector('[data-square="g1"]')?.classList).toContain(
+      "chessboard__square--from",
+    );
+    expect(document.querySelector('[data-square="f3"]')?.classList).toContain(
+      "chessboard__square--to",
+    );
+
+    const secondCandidate = Array.from(document.querySelectorAll<HTMLButtonElement>(".move__summary"))
+      .find((button) => button.textContent?.includes("Bc4"));
+    await act(async () => secondCandidate?.click());
+
+    expect(document.querySelector('[data-square="f1"]')?.classList).toContain(
+      "chessboard__square--from",
+    );
+    expect(document.querySelector('[data-square="c4"]')?.classList).toContain(
+      "chessboard__square--to",
+    );
+  });
+
+  it("runs the current position from the documented keyboard shortcut", async () => {
+    api.analyzeEvidence.mockResolvedValue({
+      analysis: {
+        fen: STARTING_FEN,
+        actor: "user",
+        advisor_role: "user",
+        reply_role: "opponent",
+        evaluation_cp: 20,
+        evaluation_mate: null,
+        candidates: [],
+        opening: null,
+      },
+      position: undefined,
+      candidates: [],
+    });
+    await act(async () => root?.render(<App />));
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true }));
+    });
+
+    await vi.waitFor(() => {
+      expect(api.analyzeEvidence).toHaveBeenCalledWith(
+        expect.objectContaining({ fen: STARTING_FEN, actor: "user" }),
+      );
+      expect(document.body.textContent).toContain("Análise concluída");
     });
   });
 });
