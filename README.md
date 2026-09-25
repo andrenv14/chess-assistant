@@ -20,7 +20,7 @@ sem depender das demais.
 - reconstrução e classificação do lance efetivamente jogado;
 - catálogo local CC0 do Lichess com identificação automática de abertura;
 - evidências determinísticas de posição e de cada candidato do Stockfish;
-- explicações estruturadas e validadas via OpenRouter/OpenResponses.
+- explicações estruturadas e validadas via OpenRouter/OpenResponses;
 - perfis e histórico recente persistidos localmente em SQLite.
 
 ## Arquitetura
@@ -95,8 +95,9 @@ Se já existir uma instância saudável em `127.0.0.1:8765`, o desktop a reutili
 e não a encerra ao sair. Para usar outro Python ou diretório de backend, defina
 `CHESS_ASSISTANT_PYTHON` ou `CHESS_ASSISTANT_BACKEND_DIR` no ambiente.
 
-O smoke test abaixo compila o desktop, inicia o backend real, valida saúde e
-persistência temporária e encerra o processo criado:
+O smoke test abaixo compila o desktop, inicia o backend real, valida saúde,
+persistência temporária e o transporte WebSocket extensão → backend → desktop,
+e então encerra o processo criado:
 
 ```powershell
 npm run smoke:desktop-backend

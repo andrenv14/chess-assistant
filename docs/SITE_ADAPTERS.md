@@ -22,6 +22,11 @@ therefore combines:
 The polling loop is stopped and the observer detached on `pagehide`.
 The manifest pattern includes both `/analysis` and deeper analysis URLs.
 
+The background bridge keeps only the newest position queued while disconnected.
+It clears that position only after the backend acknowledgement and replays an
+unacknowledged position after reconnecting, so a backend startup race cannot
+silently lose the board snapshot.
+
 ## Chess.com Analysis
 
 The initial loader exposes a textarea labelled “Paste a PGN, FEN, or study

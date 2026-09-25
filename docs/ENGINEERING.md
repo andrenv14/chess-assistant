@@ -24,7 +24,8 @@ the fast CI job does not download an engine binary.
 
 The desktop/backend smoke test compiles the Electron main process, launches the
 real local Python service, requires the application-specific health identity and
-working temporary SQLite storage, and then stops only the process it created.
+working temporary SQLite storage, verifies extension-to-desktop WebSocket
+forwarding plus acknowledgement, and then stops only the process it created.
 
 ## Testing strategy
 

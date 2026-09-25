@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **89%**;
-- portfolio-ready release: **69%**;
-- full intended product: **70%**.
+- local analysis core: **90%**;
+- portfolio-ready release: **71%**;
+- full intended product: **72%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -31,6 +31,8 @@ unpacked.
   with restore and clear controls in the desktop;
 - Electron-owned backend startup, identity health check and bounded shutdown,
   verified by a reproducible real-process smoke test;
+- real extension-to-desktop WebSocket forwarding with backend acknowledgement,
+  plus latest-position queuing and replay after reconnect;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
   order enforcement (`google/gemini-3.8-flash`);
 - current Lichess Analysis and Chess.com Analysis FEN extraction;

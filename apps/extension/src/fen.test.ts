@@ -11,6 +11,14 @@ describe("isFen", () => {
     expect(isFen(STARTING_FEN)).toBe(true);
     expect(isFen("this is not a position")).toBe(false);
   });
+
+  it("rejects structurally incomplete boards and missing kings", () => {
+    expect(isFen("8 w - - 0 1")).toBe(false);
+    expect(isFen("8/8/8/8/8/8/8/8 w - - 0 1")).toBe(false);
+    expect(isFen("9/8/8/8/8/8/8/K6k w - - 0 1")).toBe(false);
+    expect(isFen("8/8/8/8/8/8/8/K6k w KK - 0 1")).toBe(false);
+    expect(isFen("8/8/8/8/8/8/8/K6k w - - 0 0")).toBe(false);
+  });
 });
 
 describe("findFen", () => {

@@ -1,6 +1,35 @@
 export function isFen(value: string): boolean {
-  return /^[prnbqkPRNBQK1-8/]+\s[wb]\s(?:-|[KQkq]+)\s(?:-|[a-h][36])\s\d+\s\d+$/.test(
-    value.trim(),
+  const fields = value.trim().split(/\s+/);
+  if (fields.length !== 6) return false;
+  const [placement, turn, castling, enPassant, halfmove, fullmove] = fields;
+  if (!placement || !turn || !castling || !enPassant || !halfmove || !fullmove) return false;
+
+  const ranks = placement.split("/");
+  if (ranks.length !== 8) return false;
+  let whiteKings = 0;
+  let blackKings = 0;
+  for (const rank of ranks) {
+    let files = 0;
+    for (const token of rank) {
+      if (/^[1-8]$/.test(token)) files += Number(token);
+      else if (/^[prnbqkPRNBQK]$/.test(token)) {
+        files += 1;
+        if (token === "K") whiteKings += 1;
+        if (token === "k") blackKings += 1;
+      } else return false;
+    }
+    if (files !== 8) return false;
+  }
+
+  return (
+    whiteKings === 1 &&
+    blackKings === 1 &&
+    /^[wb]$/.test(turn) &&
+    /^(?:-|K?Q?k?q?)$/.test(castling) &&
+    /^(?:-|[a-h][36])$/.test(enPassant) &&
+    /^\d+$/.test(halfmove) &&
+    /^\d+$/.test(fullmove) &&
+    Number(fullmove) >= 1
   );
 }
 
