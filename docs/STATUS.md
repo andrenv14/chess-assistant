@@ -6,15 +6,15 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **91%**;
-- portfolio-ready release: **74%**;
-- full intended product: **74%**.
+- local analysis core: **93%**;
+- portfolio-ready release: **80%**;
+- full intended product: **79%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
 the desktop API and both analysis-page readers work. Release readiness is lower
-because the Python runtime is not packaged yet and the extension is still loaded
-unpacked.
+because the Windows installer has not yet been exercised on a clean machine and
+the extension is still loaded unpacked.
 
 ## Verified today
 
@@ -44,6 +44,10 @@ unpacked.
 - TypeScript contracts, structured redacted logs and engineering documentation;
 - local Ruff, Pytest, Vitest, typecheck and production builds;
 - GitHub Actions checks for every push to `main` and every pull request.
+- self-contained Windows backend with embedded Python, opening catalogue and
+  the official Stockfish binary, license and corresponding source;
+- reproducible unpacked Electron and NSIS installer builds, plus a packaged
+  backend smoke test and a successful real analysis launched by the final app;
 
 ## Required before calling it portfolio-ready
 
@@ -55,8 +59,8 @@ unpacked.
    can support labels such as brilliant, great or missed opportunity.
 4. Expand beyond the current tactical/strategic base into discovered attacks,
    relative pins, weak squares, outposts and more specialized endgame concepts.
-5. Package the desktop, backend and licensed Stockfish distribution into a
-   repeatable Windows installation and test it on a clean machine.
+5. Exercise the generated Windows installer on a clean machine, add a release
+   icon and trusted code signing, and document upgrade/uninstall behavior.
 6. Expand UI-level regression coverage beyond profiles/history and add a short
    portfolio demo flow.
 

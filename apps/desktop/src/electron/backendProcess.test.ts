@@ -3,7 +3,12 @@ import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { ensureBackend, isBackendReady, resolvePythonPath } from "./backendProcess.js";
+import {
+  ensureBackend,
+  isBackendReady,
+  resolveBackendInvocation,
+  resolvePythonPath,
+} from "./backendProcess.js";
 
 function fakeChild() {
   const child = new EventEmitter() as EventEmitter & {
@@ -133,6 +138,36 @@ describe("resolvePythonPath", () => {
   it("always honors an explicit runtime override", () => {
     expect(resolvePythonPath(path.join("project", "backend"), "custom-python")).toBe(
       "custom-python",
+    );
+  });
+});
+
+describe("resolveBackendInvocation", () => {
+  it("runs the self-contained backend without Python arguments when packaged", () => {
+    const invocation = resolveBackendInvocation(
+      path.join("resources", "backend"),
+      undefined,
+      (candidate) => candidate.endsWith(
+        process.platform === "win32"
+          ? "chess-assistant-backend.exe"
+          : "chess-assistant-backend",
+      ),
+    );
+
+    expect(invocation.command).toContain("chess-assistant-backend");
+    expect(invocation.args).toEqual([]);
+  });
+
+  it("keeps an explicit Python override for development and diagnosis", () => {
+    const invocation = resolveBackendInvocation(
+      "backend",
+      "python-custom",
+      () => true,
+    );
+
+    expect(invocation.command).toBe("python-custom");
+    expect(invocation.args).toEqual(
+      expect.arrayContaining(["-m", "uvicorn", "app.main:app"]),
     );
   });
 });

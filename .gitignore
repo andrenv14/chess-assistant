@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-electron/
 dist-renderer/
+release/
 .vite/
 
 .venv/
@@ -17,5 +18,10 @@ __pycache__/
 *.sqlite3-wal
 backend/.test-*/
 backend/vendor/
+backend/build/
+backend/dist/
+backend/*.spec
+backend/pip-build-*/
+backend/pytest-of-*/
 .DS_Store
 Thumbs.db

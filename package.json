@@ -13,7 +13,11 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:desktop": "npm run dev --workspace @chess-assistant/desktop",
     "smoke:desktop-backend": "npm run smoke:backend --workspace @chess-assistant/desktop",
-    "build:extension": "npm run build --workspace @chess-assistant/extension"
+    "smoke:packaged-backend": "node scripts/smoke-packaged-backend.mjs",
+    "build:extension": "npm run build --workspace @chess-assistant/extension",
+    "package:backend": "pwsh -NoProfile -File ./scripts/build-backend.ps1",
+    "package:win": "npm run package:backend && npm run package:win --workspace @chess-assistant/desktop",
+    "package:dir": "npm run package:backend && npm run package:dir --workspace @chess-assistant/desktop"
   },
   "engines": {
     "node": ">=22"

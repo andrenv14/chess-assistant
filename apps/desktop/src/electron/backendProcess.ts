@@ -31,6 +31,11 @@ interface BackendHealth {
   service?: unknown;
 }
 
+export interface BackendInvocation {
+  command: string;
+  args: string[];
+}
+
 /** Verify that the loopback service is this application, not merely an HTTP server. */
 export async function isBackendReady(
   healthUrl = HEALTH_URL,
@@ -57,17 +62,39 @@ export function resolvePythonPath(backendDirectory: string, override?: string): 
   return existsSync(virtualEnvironmentPython) ? virtualEnvironmentPython : "python";
 }
 
+/** Select the self-contained packaged backend when present, with Python as a dev fallback. */
+export function resolveBackendInvocation(
+  backendDirectory: string,
+  pythonOverride?: string,
+  fileExists: (path: string) => boolean = existsSync,
+): BackendInvocation {
+  if (!pythonOverride) {
+    const portableName = process.platform === "win32"
+      ? "chess-assistant-backend.exe"
+      : "chess-assistant-backend";
+    const portableBackend = path.join(backendDirectory, portableName);
+    if (fileExists(portableBackend)) {
+      return { command: portableBackend, args: [] };
+    }
+  }
+
+  return {
+    command: resolvePythonPath(backendDirectory, pythonOverride),
+    args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8765"],
+  };
+}
+
 /** Start the local backend only when a verified instance is not already ready. */
 export async function ensureBackend(options: BackendStartOptions): Promise<BackendController> {
   const healthUrl = options.healthUrl ?? HEALTH_URL;
   const checkReady = options.checkReady ?? (() => isBackendReady(healthUrl));
   if (await checkReady()) return externalBackendController();
 
-  const command = resolvePythonPath(options.backendDirectory, options.pythonPath);
+  const invocation = resolveBackendInvocation(options.backendDirectory, options.pythonPath);
   const spawnProcess = options.spawnProcess ?? spawn;
   const child = spawnProcess(
-    command,
-    ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8765"],
+    invocation.command,
+    invocation.args,
     {
       cwd: options.backendDirectory,
       env: process.env,

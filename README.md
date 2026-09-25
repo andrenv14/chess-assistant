@@ -112,6 +112,18 @@ npm run build:extension
 Carregue `apps/extension/dist` como extensão descompactada no Chrome/Edge. Neste
 marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 
+Para criar um diretório Windows instalável sem exigir Python ou Stockfish no
+computador de destino, instale antes o grupo Python `package` e execute:
+
+```powershell
+backend\.venv\Scripts\python.exe -m pip install -e ".\backend[package]"
+npm run package:dir
+```
+
+Depois da verificação do diretório, `npm run package:win` gera o instalador
+NSIS. O procedimento completo e o checklist de publicação estão em
+[`docs/PACKAGING.md`](docs/PACKAGING.md).
+
 ## API do primeiro marco
 
 - `GET /health` — estado do backend e disponibilidade do Stockfish;
@@ -166,3 +178,4 @@ Exemplo de alteração de força:
 - [Persistência local e histórico](docs/PERSISTENCE.md)
 - [Adaptadores do Lichess e Chess.com](docs/SITE_ADAPTERS.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)
+- [Empacotamento e instalação Windows](docs/PACKAGING.md)
