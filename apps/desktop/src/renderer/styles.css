@@ -56,6 +56,8 @@ select { padding: 10px 34px 10px 11px; }
 .human-prediction__moves small { color: #929d8a; }
 .model-note { margin: 12px 0 0; color: #7f8978; font-size: 11px; }
 .explanation-summary p:last-child { margin-bottom: 0; color: #ccd5c4; line-height: 1.6; }
+.position-themes__list { display: flex; flex-wrap: wrap; gap: 7px; }
+.position-themes__list small { padding: 6px 9px; border: 1px solid #46553e; border-radius: 8px; color: #cad8bf; background: #1d241a; }
 .explanation { margin: 12px 0 0 38px; padding: 12px; border-radius: 9px; background: #20261d; }
 .explanation > strong { color: #d8e8c8; }
 .explanation p, .explanation li { color: #adb9a4; font-size: 13px; line-height: 1.55; }

@@ -7,9 +7,16 @@ and LLM prompts. It does not call Stockfish, Maia or an external service.
 
 - conventional material counts and white-minus-black balance;
 - opening, middlegame or endgame phase heuristic;
-- doubled, isolated and passed pawns for each side;
-- king square, castled position, immediate pawn shield and nearby files without
-  friendly pawns;
+- doubled, isolated, passed and connected pawns for each side, including pawn
+  island count and connected passers;
+- open files and semi-open files for each side;
+- bishop-pair possession;
+- king square, castled position, immediate pawn shield, nearby files without a
+  friendly pawn, attacked king-zone squares and the enemy attackers involved;
+- strict king-and-pawn, pure-rook, same-colored-bishop and
+  opposite-colored-bishop endgame flags;
+- direct opposition holder when the kings face each other with one square
+  between them;
 - check state, legal-move and capture counts, legal checking and mate-in-one moves;
 - pieces absolutely pinned to their king for both colors;
 - attacked non-pawn pieces with no same-color defender.
@@ -26,7 +33,20 @@ These are facts or explicitly named heuristics, not an evaluation:
   FEN move counter;
 - `castled_position` means the king occupies `c1/g1/c8/g8`; a FEN alone cannot
   prove that castling was the historical move;
-- `open_nearby_files` currently means no friendly pawn on that file;
+- `files_without_friendly_pawn` includes both fully open and semi-open files in
+  the three-file zone around the king;
+- connected pawns occupy adjacent files and differ by no more than one rank;
+- pawn islands are contiguous groups of files containing friendly pawns;
+- an open file has no pawn of either color; a semi-open file has no pawn for
+  the named side and at least one enemy pawn;
+- king-zone attackers are geometric attackers of the king square or one of its
+  adjacent squares; this is pressure evidence, not a claim of a sound attack;
+- `king_and_pawn_endgame` requires at least one pawn and no non-pawn material;
+  `pure_rook_endgame` requires exactly one rook per side and no queens, bishops
+  or knights; bishop-endgame flags likewise require exactly one bishop per side
+  and no other non-pawn material;
+- direct opposition is assigned to the side not to move only when the kings
+  share a rank or file with exactly one square between them;
 - an `undefended_attacked` piece has an enemy attacker and no same-color
   defender according to the static position;
 - a pinned piece is an absolute pin according to legal king safety, not a

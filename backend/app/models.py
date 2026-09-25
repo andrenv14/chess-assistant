@@ -200,13 +200,39 @@ class PawnFeatures(BaseModel):
     doubled_files: list[str]
     isolated_squares: list[str]
     passed_squares: list[str]
+    pawn_island_count: int
+    connected_squares: list[str]
+    connected_passed_squares: list[str]
 
 
 class KingSafetyFeatures(BaseModel):
     king_square: str
     castled_position: bool
     pawn_shield_count: int
-    open_nearby_files: list[str]
+    files_without_friendly_pawn: list[str]
+    attacked_zone_squares: list[str]
+    enemy_attackers: list[str]
+
+
+class FileFeatures(BaseModel):
+    open_files: list[str]
+    white_semi_open_files: list[str]
+    black_semi_open_files: list[str]
+
+
+class StrategicFeatures(BaseModel):
+    files: FileFeatures
+    white_bishop_pair: bool
+    black_bishop_pair: bool
+
+
+class EndgameFeatures(BaseModel):
+    active: bool
+    king_and_pawn_endgame: bool
+    pure_rook_endgame: bool
+    opposite_colored_bishop_endgame: bool
+    same_colored_bishop_endgame: bool
+    direct_opposition_holder: Literal["white", "black"] | None
 
 
 class TacticalFeatures(BaseModel):
@@ -230,6 +256,8 @@ class PositionFeaturesResponse(BaseModel):
     black_pawns: PawnFeatures
     white_king: KingSafetyFeatures
     black_king: KingSafetyFeatures
+    strategic: StrategicFeatures
+    endgame: EndgameFeatures
     tactics: TacticalFeatures
 
 

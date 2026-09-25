@@ -8,6 +8,7 @@ import type {
   HumanPredictionResponse,
   MoveClassificationResponse,
   PositionExplanation,
+  PositionFeaturesResponse,
 } from "@chess-assistant/contracts";
 import { logEvent } from "@chess-assistant/contracts";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +26,7 @@ import {
   evaluationToWhitePercent,
   formatEvaluation,
   formatPlanHint,
+  formatPositionThemes,
   formatProbability,
 } from "./presentation";
 
@@ -111,6 +113,7 @@ export function App() {
   const [settings, setSettings] = useState<EngineSettingsResponse | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
   const [candidateEvidence, setCandidateEvidence] = useState<CandidateEvidence[]>([]);
+  const [positionFeatures, setPositionFeatures] = useState<PositionFeaturesResponse | null>(null);
   const [humanView, setHumanView] = useState<HumanPredictionResponse | null>(null);
   const [lastMove, setLastMove] = useState<MoveClassificationResponse | null>(null);
   const [explanation, setExplanation] = useState<PositionExplanation | null>(null);
@@ -120,6 +123,32 @@ export function App() {
   const previousBrowserFen = useRef<string | null>(null);
   const analysisRequestId = useRef(0);
   const explanationRequestId = useRef(0);
+  const positionThemes =
+    positionFeatures && positionFeatures.fen === fen
+      ? formatPositionThemes(positionFeatures)
+      : [];
+
+  function clearAnalysisResults() {
+    analysisRequestId.current += 1;
+    explanationRequestId.current += 1;
+    setAnalysis(null);
+    setCandidateEvidence([]);
+    setPositionFeatures(null);
+    setHumanView(null);
+    setExplanation(null);
+    setBusy(false);
+    setExplaining(false);
+  }
+
+  function changeFen(nextFen: string) {
+    setFen(nextFen);
+    clearAnalysisResults();
+  }
+
+  function changeActor(nextActor: "user" | "opponent") {
+    setActor(nextActor);
+    clearAnalysisResults();
+  }
 
   useEffect(() => {
     void getSettings()
@@ -145,7 +174,7 @@ export function App() {
 
       const beforeFen = previousBrowserFen.current;
       previousBrowserFen.current = event.fen;
-      setFen(event.fen);
+      changeFen(event.fen);
 
       if (beforeFen && beforeFen !== event.fen && event.source !== "manual") {
         void classifyMove({ before_fen: beforeFen, after_fen: event.fen })
@@ -167,6 +196,7 @@ export function App() {
     setStatus("Analisando…");
     setHumanView(null);
     setCandidateEvidence([]);
+    setPositionFeatures(null);
     setExplanation(null);
     try {
       const selfRole = actor === "user" ? "user" : "opponent";
@@ -196,16 +226,18 @@ export function App() {
       const result = bundle.analysis;
       setAnalysis(result);
       setCandidateEvidence(bundle.candidates);
+      setPositionFeatures(bundle.position);
       logEvent("info", "analysis_completed", {
         component: "desktop",
         candidateCount: result.candidates.length,
       });
       setStatus("Análise concluída");
     } catch (error) {
+      if (analysisRequestId.current !== requestId) return;
       logEvent("error", "analysis_failed", { component: "desktop" });
       setStatus(error instanceof Error ? error.message : "Falha na análise");
     } finally {
-      setBusy(false);
+      if (analysisRequestId.current === requestId) setBusy(false);
     }
   }
 
@@ -224,6 +256,7 @@ export function App() {
       if (requestId !== explanationRequestId.current) return;
       setAnalysis(result.evidence.analysis);
       setCandidateEvidence(result.evidence.candidates);
+      setPositionFeatures(result.evidence.position);
       setExplanation(result.explanation);
       setStatus("Explicação concluída");
     } catch (error) {
@@ -261,12 +294,15 @@ export function App() {
         <section className="panel panel--analysis">
           <div className="field">
             <label htmlFor="fen">Posição (FEN)</label>
-            <textarea id="fen" value={fen} onChange={(event) => setFen(event.target.value)} />
+            <textarea id="fen" value={fen} onChange={(event) => changeFen(event.target.value)} />
           </div>
           <div className="controls">
             <label>
               Quem joga
-              <select value={actor} onChange={(event) => setActor(event.target.value as typeof actor)}>
+              <select
+                value={actor}
+                onChange={(event) => changeActor(event.target.value as typeof actor)}
+              >
                 <option value="user">Você</option>
                 <option value="opponent">Oponente</option>
               </select>
@@ -317,6 +353,16 @@ export function App() {
               <article className="move explanation-summary">
                 <p className="eyebrow">LEITURA DA POSIÇÃO</p>
                 <p>{explanation.position_summary}</p>
+              </article>
+            )}
+            {positionThemes.length > 0 && (
+              <article className="move position-themes">
+                <p className="eyebrow">TEMAS DA POSIÇÃO</p>
+                <div className="position-themes__list">
+                  {positionThemes.map((theme) => (
+                    <small key={theme}>{theme}</small>
+                  ))}
+                </div>
               </article>
             )}
             {analysis?.opening && (

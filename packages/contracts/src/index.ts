@@ -145,13 +145,39 @@ export interface PawnFeatures {
   doubled_files: string[];
   isolated_squares: string[];
   passed_squares: string[];
+  pawn_island_count: number;
+  connected_squares: string[];
+  connected_passed_squares: string[];
 }
 
 export interface KingSafetyFeatures {
   king_square: string;
   castled_position: boolean;
   pawn_shield_count: number;
-  open_nearby_files: string[];
+  files_without_friendly_pawn: string[];
+  attacked_zone_squares: string[];
+  enemy_attackers: string[];
+}
+
+export interface FileFeatures {
+  open_files: string[];
+  white_semi_open_files: string[];
+  black_semi_open_files: string[];
+}
+
+export interface StrategicFeatures {
+  files: FileFeatures;
+  white_bishop_pair: boolean;
+  black_bishop_pair: boolean;
+}
+
+export interface EndgameFeatures {
+  active: boolean;
+  king_and_pawn_endgame: boolean;
+  pure_rook_endgame: boolean;
+  opposite_colored_bishop_endgame: boolean;
+  same_colored_bishop_endgame: boolean;
+  direct_opposition_holder: "white" | "black" | null;
 }
 
 export interface PositionFeaturesRequest {
@@ -171,6 +197,8 @@ export interface PositionFeaturesResponse {
   black_pawns: PawnFeatures;
   white_king: KingSafetyFeatures;
   black_king: KingSafetyFeatures;
+  strategic: StrategicFeatures;
+  endgame: EndgameFeatures;
   tactics: {
     side_to_move_in_check: boolean;
     legal_move_count: number;

@@ -13,7 +13,11 @@ export function evaluationToWhitePercent(cp: number | null, mate: number | null)
 export function formatProbability(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
-import type { MoveFacts, PlanHint } from "@chess-assistant/contracts";
+import type {
+  MoveFacts,
+  PlanHint,
+  PositionFeaturesResponse,
+} from "@chess-assistant/contracts";
 
 const PLAN_LABELS: Record<PlanHint, string> = {
   deliver_checkmate: "finalizar com xeque-mate",
@@ -34,6 +38,65 @@ const PLAN_LABELS: Record<PlanHint, string> = {
 function formatSquares(squares: string[]): string {
   if (squares.length < 2) return squares[0] ?? "";
   return `${squares.slice(0, -1).join(", ")} e ${squares.at(-1)}`;
+}
+
+export function formatPositionThemes(position: PositionFeaturesResponse): string[] {
+  const themes: string[] = [];
+  const files = position.strategic.files;
+  if (files.open_files.length) {
+    themes.push(`Colunas abertas: ${formatSquares(files.open_files)}`);
+  }
+  if (files.white_semi_open_files.length) {
+    themes.push(`Semiabertas para as brancas: ${formatSquares(files.white_semi_open_files)}`);
+  }
+  if (files.black_semi_open_files.length) {
+    themes.push(`Semiabertas para as pretas: ${formatSquares(files.black_semi_open_files)}`);
+  }
+  if (position.strategic.white_bishop_pair !== position.strategic.black_bishop_pair) {
+    themes.push(
+      position.strategic.white_bishop_pair
+        ? "As brancas têm o par de bispos"
+        : "As pretas têm o par de bispos",
+    );
+  }
+  if (position.white_pawns.pawn_island_count > 1) {
+    themes.push(`Brancas: ${position.white_pawns.pawn_island_count} ilhas de peões`);
+  }
+  if (position.black_pawns.pawn_island_count > 1) {
+    themes.push(`Pretas: ${position.black_pawns.pawn_island_count} ilhas de peões`);
+  }
+  if (position.white_pawns.connected_passed_squares.length) {
+    themes.push(
+      `Passados conectados brancos: ${formatSquares(position.white_pawns.connected_passed_squares)}`,
+    );
+  }
+  if (position.black_pawns.connected_passed_squares.length) {
+    themes.push(
+      `Passados conectados pretos: ${formatSquares(position.black_pawns.connected_passed_squares)}`,
+    );
+  }
+
+  if (position.endgame.king_and_pawn_endgame) themes.push("Final de reis e peões");
+  if (position.endgame.pure_rook_endgame) themes.push("Final puro de torres");
+  if (position.endgame.opposite_colored_bishop_endgame) {
+    themes.push("Final de bispos de cores opostas");
+  }
+  if (position.endgame.same_colored_bishop_endgame) {
+    themes.push("Final de bispos da mesma cor");
+  }
+  if (position.endgame.direct_opposition_holder) {
+    themes.push(
+      `Oposição direta: ${position.endgame.direct_opposition_holder === "white" ? "brancas" : "pretas"}`,
+    );
+  }
+
+  if (position.white_king.enemy_attackers.length >= 2) {
+    themes.push(`Pressão sobre o rei branco: ${position.white_king.enemy_attackers.length} atacantes`);
+  }
+  if (position.black_king.enemy_attackers.length >= 2) {
+    themes.push(`Pressão sobre o rei preto: ${position.black_king.enemy_attackers.length} atacantes`);
+  }
+  return themes;
 }
 
 export function formatPlanHint(hint: PlanHint, facts?: MoveFacts): string {

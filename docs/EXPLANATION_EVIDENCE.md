@@ -54,3 +54,8 @@ but it may not:
 - replace an evaluation or post-move classification;
 - claim an exact human move probability from Maia's UCI rank;
 - present a heuristic as a forced conclusion.
+
+Position-level evidence also includes pawn islands, connected passers, open and
+semi-open files, bishop pairs, king-zone pressure and strict endgame types. The
+desktop renders these facts before an LLM response is requested, so the user can
+distinguish deterministic themes from generated prose.

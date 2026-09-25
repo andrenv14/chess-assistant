@@ -100,6 +100,10 @@ def test_position_features_do_not_require_an_engine() -> None:
     payload = response.json()
     assert payload["phase"] == "opening"
     assert payload["material"]["balance_cp"] == 0
+    assert payload["white_pawns"]["pawn_island_count"] == 1
+    assert payload["strategic"]["files"]["open_files"] == []
+    assert payload["strategic"]["white_bishop_pair"] is True
+    assert payload["endgame"]["active"] is False
     assert payload["tactics"]["legal_move_count"] == 20
 
 

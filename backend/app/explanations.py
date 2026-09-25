@@ -25,6 +25,8 @@ Explique a ideia antes dos números; não despeje variantes longas nem recite o 
 Use tom humano, fluido e útil, sem dizer "rank", "evidência" ou "registrado".
 Use ortografia brasileira correta, inclusive acentos e cedilha.
 Não afirme qual foi o último lance: uma FEN isolada não contém esse histórico.
+Pressão geométrica na zona do rei não significa ataque vencedor ou ameaça forçada.
+Apresente estrutura e tipo de final como fatos; derive planos apenas das variantes fornecidas.
 Se a evidência não sustentar uma afirmação, diga que ela não foi determinada.
 Responda somente com JSON compatível com o esquema solicitado, sem Markdown."""
 

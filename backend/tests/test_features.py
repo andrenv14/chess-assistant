@@ -10,7 +10,13 @@ def test_starting_position_has_balanced_opening_features() -> None:
     assert features.material.balance_cp == 0
     assert features.material.white.value_cp == 4_000
     assert features.white_pawns.doubled_files == []
+    assert features.white_pawns.pawn_island_count == 1
+    assert len(features.white_pawns.connected_squares) == 8
     assert features.white_king.pawn_shield_count == 3
+    assert features.strategic.files.open_files == []
+    assert features.strategic.white_bishop_pair is True
+    assert features.strategic.black_bishop_pair is True
+    assert features.endgame.active is False
     assert features.tactics.legal_move_count == 20
 
 
@@ -20,6 +26,7 @@ def test_low_material_position_is_an_endgame() -> None:
     assert features.phase == "endgame"
     assert features.material.balance_cp == 100
     assert features.white_pawns.passed_squares == ["d2"]
+    assert features.endgame.king_and_pawn_endgame is True
 
 
 def test_detects_doubled_and_isolated_pawns() -> None:
@@ -27,6 +34,76 @@ def test_detects_doubled_and_isolated_pawns() -> None:
 
     assert features.white_pawns.doubled_files == ["c"]
     assert features.white_pawns.isolated_squares == ["c3", "c4"]
+    assert features.white_pawns.connected_squares == []
+
+
+def test_detects_pawn_islands_and_connected_passers() -> None:
+    features = extract_position_features("4k3/8/8/8/3PP3/1P6/P7/4K3 w - - 0 1")
+
+    assert features.white_pawns.pawn_island_count == 2
+    assert features.white_pawns.connected_squares == ["a2", "b3", "d4", "e4"]
+    assert features.white_pawns.connected_passed_squares == ["a2", "b3", "d4", "e4"]
+
+
+def test_detects_open_and_semi_open_files() -> None:
+    features = extract_position_features("4k3/2pp4/8/8/8/8/P1P5/4K3 w - - 0 1")
+
+    files = features.strategic.files
+    assert files.open_files == ["b", "e", "f", "g", "h"]
+    assert files.white_semi_open_files == ["d"]
+    assert files.black_semi_open_files == ["a"]
+
+
+def test_reports_enemy_pressure_in_the_king_zone() -> None:
+    features = extract_position_features("4k3/8/8/2b5/7q/8/5PPP/6K1 w - - 0 1")
+
+    assert features.white_king.attacked_zone_squares == ["f2", "h2"]
+    assert features.white_king.enemy_attackers == ["c5", "h4"]
+
+
+def test_identifies_strict_rook_endgame() -> None:
+    features = extract_position_features("r3k3/8/8/8/8/8/8/R3K3 w - - 0 1")
+
+    assert features.endgame.active is True
+    assert features.endgame.pure_rook_endgame is True
+    assert features.endgame.king_and_pawn_endgame is False
+
+
+def test_extra_minor_piece_prevents_pure_rook_endgame_label() -> None:
+    features = extract_position_features("r3k3/8/8/8/8/8/8/RN2K3 w - - 0 1")
+
+    assert features.endgame.pure_rook_endgame is False
+
+
+def test_identifies_opposite_and_same_colored_bishop_endgames() -> None:
+    opposite = extract_position_features("2b1k3/8/8/8/8/8/8/2B1K3 w - - 0 1")
+    same = extract_position_features("4kb2/8/8/8/8/8/8/2B1K3 w - - 0 1")
+
+    assert opposite.endgame.opposite_colored_bishop_endgame is True
+    assert opposite.endgame.same_colored_bishop_endgame is False
+    assert same.endgame.opposite_colored_bishop_endgame is False
+    assert same.endgame.same_colored_bishop_endgame is True
+
+
+def test_extra_rook_prevents_pure_bishop_endgame_label() -> None:
+    features = extract_position_features("2b1k2r/8/8/8/8/8/8/2B1K3 w - - 0 1")
+
+    assert features.endgame.opposite_colored_bishop_endgame is False
+    assert features.endgame.same_colored_bishop_endgame is False
+
+
+def test_bare_kings_are_not_called_a_king_and_pawn_endgame() -> None:
+    features = extract_position_features("8/8/8/8/8/8/8/K6k w - - 0 1")
+
+    assert features.endgame.king_and_pawn_endgame is False
+
+
+def test_direct_opposition_belongs_to_the_side_not_to_move() -> None:
+    white_to_move = extract_position_features("8/8/4k3/8/4K3/8/8/8 w - - 0 1")
+    black_to_move = extract_position_features("8/8/4k3/8/4K3/8/8/8 b - - 0 1")
+
+    assert white_to_move.endgame.direct_opposition_holder == "black"
+    assert black_to_move.endgame.direct_opposition_holder == "white"
 
 
 def test_reports_checking_moves_as_uci_facts() -> None:

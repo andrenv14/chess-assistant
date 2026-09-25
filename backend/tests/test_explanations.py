@@ -82,11 +82,16 @@ def test_prompt_marks_stockfish_as_authority_and_serializes_evidence() -> None:
     assert "Use tom humano" in prompt.system
     assert "acentos e cedilha" in prompt.system
     assert "Não afirme qual foi o último lance" in prompt.system
+    assert "Pressão geométrica" in prompt.system
+    assert "derive planos apenas das variantes" in prompt.system
     assert payload["required_candidate_count"] == 2
     assert payload["required_candidate_order"] == ["g1f3", "e2e4"]
     assert payload["evidence"]["candidates"][0]["plan_hints"] == [
         "develop_and_coordinate"
     ]
+    assert payload["evidence"]["position"]["white_pawns"]["pawn_island_count"] == 1
+    assert payload["evidence"]["position"]["strategic"]["white_bishop_pair"] is True
+    assert payload["evidence"]["position"]["endgame"]["active"] is False
     assert prompt.response_schema["title"] == "PositionExplanation"
 
 
