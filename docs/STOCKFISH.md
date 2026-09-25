@@ -37,7 +37,10 @@ start the real executable and verify:
 - clean shutdown of all engine processes.
 
 Run them by setting `STOCKFISH_PATH` and executing `pytest -m integration` from
-`backend`.
+`backend`. The `Native Stockfish regression corpus` GitHub Actions job performs
+the same installation and native test run on every push and pull request, so a
+classification threshold or engine-integration regression cannot silently pass
+through the fast mocked suite.
 
 ## Distribution note
 

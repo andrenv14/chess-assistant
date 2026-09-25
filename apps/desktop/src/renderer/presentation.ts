@@ -24,6 +24,8 @@ const PLAN_LABELS: Record<PlanHint, string> = {
   force_check_response: "exigir uma resposta ao xeque",
   fork_pieces: "atacar duas peças ao mesmo tempo",
   pin_piece: "cravar uma peça contra o rei",
+  relative_pin_piece: "cravar uma peça contra outra de maior valor",
+  discovered_attack: "abrir um ataque descoberto",
   attack_loose_piece: "atacar uma peça sem defesa",
   capture_or_exchange_material: "capturar ou trocar material",
   secure_king: "colocar o rei em segurança",
@@ -105,6 +107,12 @@ export function formatPlanHint(hint: PlanHint, facts?: MoveFacts): string {
   }
   if (hint === "pin_piece" && facts?.newly_pinned_targets.length) {
     return `cravar ${formatSquares(facts.newly_pinned_targets)} contra o rei`;
+  }
+  if (hint === "relative_pin_piece" && facts?.newly_relative_pinned_targets.length) {
+    return `cravar relativamente ${formatSquares(facts.newly_relative_pinned_targets)}`;
+  }
+  if (hint === "discovered_attack" && facts?.discovered_attack_targets.length) {
+    return `abrir ataque descoberto contra ${formatSquares(facts.discovered_attack_targets)}`;
   }
   if (hint === "attack_loose_piece" && facts?.newly_attacked_undefended_targets.length) {
     return `atacar ${formatSquares(facts.newly_attacked_undefended_targets)} sem defesa`;

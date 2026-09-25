@@ -24,6 +24,15 @@ MINOR_HOME_SQUARES = {
     chess.F8,
     chess.G8,
 }
+PIECE_VALUES = {
+    chess.PAWN: 1,
+    chess.KNIGHT: 3,
+    chess.BISHOP: 3,
+    chess.ROOK: 5,
+    chess.QUEEN: 9,
+}
+ORTHOGONAL_DIRECTIONS = ((1, 0), (-1, 0), (0, 1), (0, -1))
+DIAGONAL_DIRECTIONS = ((1, 1), (1, -1), (-1, 1), (-1, -1))
 
 
 def build_analysis_evidence(analysis: AnalyzeResponse) -> AnalysisEvidenceResponse:
@@ -73,6 +82,8 @@ def describe_candidate(
 
     before_attacks = _valuable_targets_attacked_by(board, move.from_square, not mover)
     before_pinned = set(_pinned_targets(board, not mover))
+    before_relative_pinned = _relative_pinned_targets(board, not mover)
+    before_sliding_attacks = _sliding_attack_pairs(board, mover)
 
     facts = MoveFacts(
         is_capture=board.is_capture(move),
@@ -81,6 +92,8 @@ def describe_candidate(
         gives_checkmate=False,
         fork_targets=[],
         newly_pinned_targets=[],
+        newly_relative_pinned_targets=[],
+        discovered_attack_targets=[],
         newly_attacked_undefended_targets=[],
         is_castling=board.is_castling(move),
         promotion_piece=chess.piece_name(move.promotion) if move.promotion else None,
@@ -105,6 +118,19 @@ def describe_candidate(
         chess.square_name(square)
         for square in set(_pinned_targets(after, not mover)) - before_pinned
     )
+    facts.newly_relative_pinned_targets = sorted(
+        chess.square_name(square)
+        for square in _relative_pinned_targets(after, not mover) - before_relative_pinned
+    )
+    newly_opened_attacks = _sliding_attack_pairs(after, mover) - before_sliding_attacks
+    if not board.is_castling(move):
+        facts.discovered_attack_targets = sorted(
+            {
+                chess.square_name(target_square)
+                for attacker_square, target_square in newly_opened_attacks
+                if attacker_square != move.to_square
+            }
+        )
     facts.newly_attacked_undefended_targets = sorted(
         chess.square_name(square)
         for square in newly_attacked
@@ -166,6 +192,84 @@ def _pinned_targets(board: chess.Board, color: chess.Color) -> list[chess.Square
     ]
 
 
+def _relative_pinned_targets(
+    board: chess.Board,
+    target_color: chess.Color,
+) -> set[chess.Square]:
+    """Return front pieces shielding a more valuable non-king piece on a ray."""
+    targets: set[chess.Square] = set()
+    attacker_color = not target_color
+    for attacker_square in chess.SquareSet(board.occupied_co[attacker_color]):
+        attacker = board.piece_at(attacker_square)
+        assert attacker is not None
+        if attacker.piece_type == chess.BISHOP:
+            directions = DIAGONAL_DIRECTIONS
+        elif attacker.piece_type == chess.ROOK:
+            directions = ORTHOGONAL_DIRECTIONS
+        elif attacker.piece_type == chess.QUEEN:
+            directions = ORTHOGONAL_DIRECTIONS + DIAGONAL_DIRECTIONS
+        else:
+            continue
+
+        attacker_file = chess.square_file(attacker_square)
+        attacker_rank = chess.square_rank(attacker_square)
+        for file_step, rank_step in directions:
+            front_square: chess.Square | None = None
+            front_piece: chess.Piece | None = None
+            file_index = attacker_file + file_step
+            rank_index = attacker_rank + rank_step
+            while 0 <= file_index < 8 and 0 <= rank_index < 8:
+                square = chess.square(file_index, rank_index)
+                piece = board.piece_at(square)
+                file_index += file_step
+                rank_index += rank_step
+                if piece is None:
+                    continue
+                if piece.color != target_color:
+                    break
+                if front_piece is None:
+                    if piece.piece_type == chess.KING:
+                        break
+                    front_square = square
+                    front_piece = piece
+                    continue
+                if (
+                    piece.piece_type != chess.KING
+                    and PIECE_VALUES.get(piece.piece_type, 0)
+                    > PIECE_VALUES.get(front_piece.piece_type, 0)
+                ):
+                    assert front_square is not None
+                    targets.add(front_square)
+                break
+    return targets
+
+
+def _sliding_attack_pairs(
+    board: chess.Board,
+    attacker_color: chess.Color,
+) -> set[tuple[chess.Square, chess.Square]]:
+    """Return slider-to-valuable-target pairs visible in the current position."""
+    pairs: set[tuple[chess.Square, chess.Square]] = set()
+    valuable_types = {
+        chess.KNIGHT,
+        chess.BISHOP,
+        chess.ROOK,
+        chess.QUEEN,
+        chess.KING,
+    }
+    for piece_type in (chess.BISHOP, chess.ROOK, chess.QUEEN):
+        for attacker_square in board.pieces(piece_type, attacker_color):
+            for target_square in board.attacks(attacker_square):
+                target = board.piece_at(target_square)
+                if (
+                    target is not None
+                    and target.color != attacker_color
+                    and target.piece_type in valuable_types
+                ):
+                    pairs.add((attacker_square, target_square))
+    return pairs
+
+
 def _plan_hints(facts: MoveFacts) -> list[PlanHint]:
     hints: list[PlanHint] = []
     if facts.gives_checkmate:
@@ -176,6 +280,10 @@ def _plan_hints(facts: MoveFacts) -> list[PlanHint]:
         hints.append("fork_pieces")
     if facts.newly_pinned_targets:
         hints.append("pin_piece")
+    if facts.newly_relative_pinned_targets:
+        hints.append("relative_pin_piece")
+    if facts.discovered_attack_targets:
+        hints.append("discovered_attack")
     if facts.newly_attacked_undefended_targets:
         hints.append("attack_loose_piece")
     if facts.is_capture:

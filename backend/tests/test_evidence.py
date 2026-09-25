@@ -37,6 +37,8 @@ def test_development_and_center_are_explicit_hints() -> None:
     assert evidence.candidates[1].plan_hints == ["contest_center"]
     assert evidence.candidates[0].facts.fork_targets == []
     assert evidence.candidates[0].facts.newly_pinned_targets == []
+    assert evidence.candidates[0].facts.newly_relative_pinned_targets == []
+    assert evidence.candidates[0].facts.discovered_attack_targets == []
     assert evidence.candidates[0].facts.newly_attacked_undefended_targets == []
 
 
@@ -100,6 +102,33 @@ def test_move_can_create_an_absolute_pin() -> None:
     facts = evidence.candidates[0].facts
     assert facts.newly_pinned_targets == ["c6"]
     assert "pin_piece" in evidence.candidates[0].plan_hints
+
+
+def test_move_can_create_a_relative_pin_to_a_more_valuable_piece() -> None:
+    board = chess.Board("7k/8/4q3/1B1n4/8/8/8/7K w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "b5c4"))
+
+    facts = evidence.candidates[0].facts
+    assert facts.newly_relative_pinned_targets == ["d5"]
+    assert "relative_pin_piece" in evidence.candidates[0].plan_hints
+    assert facts.newly_pinned_targets == []
+
+
+def test_move_can_reveal_a_discovered_attack_from_another_piece() -> None:
+    board = chess.Board("q6k/8/8/8/B7/8/7K/R7 w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "a4b5"))
+
+    facts = evidence.candidates[0].facts
+    assert facts.discovered_attack_targets == ["a8"]
+    assert "discovered_attack" in evidence.candidates[0].plan_hints
+
+
+def test_direct_attack_by_the_moved_slider_is_not_discovered() -> None:
+    board = chess.Board("3q3k/8/8/8/8/8/B7/7K w - - 0 1")
+    evidence = build_analysis_evidence(response(board, "a2b3"))
+
+    assert evidence.candidates[0].facts.discovered_attack_targets == []
+    assert "discovered_attack" not in evidence.candidates[0].plan_hints
 
 
 def test_move_can_attack_an_undefended_piece() -> None:

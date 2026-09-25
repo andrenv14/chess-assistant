@@ -1,0 +1,150 @@
+{
+  "engine": {
+    "name": "Stockfish 19",
+    "depth": 16,
+    "threads": 1,
+    "hash_mb": 64
+  },
+  "cases": [
+    {
+      "id": "reti-tartakower-1910-queen-sacrifice",
+      "description": "The forcing queen sacrifice 9.Qd8+ starts a forced mate.",
+      "source": "https://chesstrapguide.com/learn/reti-tartakower-1910-pgn/",
+      "moves_before": [
+        "e4",
+        "c6",
+        "d4",
+        "d5",
+        "Nc3",
+        "dxe4",
+        "Nxe4",
+        "Nf6",
+        "Qd3",
+        "e5",
+        "dxe5",
+        "Qa5+",
+        "Bd2",
+        "Qxe5",
+        "O-O-O",
+        "Nxe4"
+      ],
+      "played_san": "Qd8+",
+      "expected": {
+        "classification": "brilliant",
+        "rule": "brilliant_sacrifice",
+        "sacrifice_detected": true,
+        "played_is_engine_best": true,
+        "expected_points_after_min": 0.99
+      }
+    },
+    {
+      "id": "lasker-bauer-1889-double-bishop-sacrifice",
+      "description": "15.Bxh7+ begins Lasker's celebrated double-bishop sacrifice.",
+      "source": "https://en.wikipedia.org/wiki/Lasker_versus_Bauer%2C_Amsterdam%2C_1889",
+      "moves_before": [
+        "f4",
+        "d5",
+        "e3",
+        "Nf6",
+        "b3",
+        "e6",
+        "Bb2",
+        "Be7",
+        "Bd3",
+        "b6",
+        "Nc3",
+        "Bb7",
+        "Nf3",
+        "Nbd7",
+        "O-O",
+        "O-O",
+        "Ne2",
+        "c5",
+        "Ng3",
+        "Qc7",
+        "Ne5",
+        "Nxe5",
+        "Bxe5",
+        "Qc6",
+        "Qe2",
+        "a6",
+        "Nh5",
+        "Nxh5"
+      ],
+      "played_san": "Bxh7+",
+      "expected": {
+        "classification": "brilliant",
+        "rule": "brilliant_sacrifice",
+        "sacrifice_detected": true,
+        "played_is_engine_best": true,
+        "expected_points_after_min": 0.99
+      }
+    },
+    {
+      "id": "colle-ohanlon-1930-sound-alternative",
+      "description": "12.Bxh7+ is playable, but at the pinned depth it is not the first choice.",
+      "source": "https://chess.gallery/game/edgar-colle-o-hanlon-john-1930-00-00-3630307-3630307",
+      "moves_before": [
+        "d4",
+        "d5",
+        "Nf3",
+        "Nf6",
+        "e3",
+        "c5",
+        "c3",
+        "e6",
+        "Bd3",
+        "Bd6",
+        "Nbd2",
+        "Nbd7",
+        "O-O",
+        "O-O",
+        "Re1",
+        "Re8",
+        "e4",
+        "dxe4",
+        "Nxe4",
+        "Nxe4",
+        "Bxe4",
+        "cxd4"
+      ],
+      "played_san": "Bxh7+",
+      "expected": {
+        "classification": "good",
+        "rule": "expected_points",
+        "sacrifice_detected": true,
+        "played_is_engine_best": false,
+        "expected_points_after_min": 0.45,
+        "expected_points_after_max": 0.55
+      }
+    },
+    {
+      "id": "greek-gift-trivial-win-negative-control",
+      "description": "The sacrifice wins, but another move is already trivially winning, so it is not Brilliant.",
+      "source": "https://en.wikipedia.org/wiki/Greek_gift_sacrifice",
+      "moves_before": [
+        "e4",
+        "e6",
+        "d4",
+        "d5",
+        "Nc3",
+        "Nf6",
+        "e5",
+        "Nfd7",
+        "Nf3",
+        "Bb4",
+        "Bd3",
+        "O-O"
+      ],
+      "played_san": "Bxh7+",
+      "expected": {
+        "classification": "best",
+        "rule": "expected_points",
+        "sacrifice_detected": true,
+        "played_is_engine_best": true,
+        "expected_points_after_min": 0.99,
+        "second_best_expected_points_min": 0.9
+      }
+    }
+  ]
+}

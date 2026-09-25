@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **94%**;
-- portfolio-ready release: **82%**;
-- full intended product: **81%**.
+- local analysis core: **95%**;
+- portfolio-ready release: **84%**;
+- full intended product: **83%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -23,10 +23,14 @@ the extension is still loaded unpacked.
 - reconstruction and base classification of the played move;
 - deterministic Brilliant, Great and Miss rules with sacrifice, forcing-line
   and unique-second-choice evidence returned to the desktop;
+- fixed Stockfish 19 classification corpus covering two celebrated sacrifices,
+  a sound non-best sacrifice and a decorative-sacrifice false-positive guard;
 - 3,815 local Lichess opening positions;
 - deterministic position and candidate facts;
 - deterministic mate-in-one, fork, absolute-pin and loose-piece motifs with
   concrete target squares in the desktop;
+- deterministic relative-pin and discovered-attack motifs with concrete target
+  squares in the desktop;
 - deterministic pawn islands, connected passers, file structure, bishop pairs,
   king-zone pressure, strict endgame types and direct opposition;
 - SQLite persistence for runtime profiles and bounded recent analysis history,
@@ -45,7 +49,8 @@ the extension is still loaded unpacked.
   plus extension popup validation and delivery states;
 - TypeScript contracts, structured redacted logs and engineering documentation;
 - local Ruff, Pytest, Vitest, typecheck and production builds;
-- GitHub Actions checks for every push to `main` and every pull request.
+- GitHub Actions checks for every push to `main` and every pull request,
+  including a Windows job with the pinned native Stockfish regression corpus;
 - self-contained Windows backend with embedded Python, opening catalogue and
   the official Stockfish binary, license and corresponding source;
 - reproducible unpacked Electron and NSIS installer builds, plus a packaged
@@ -57,10 +62,10 @@ the extension is still loaded unpacked.
    covering tactics, strategy, endgames and forced mates.
 2. Exercise the built extension and desktop app together in installed form on
    both supported analysis pages.
-3. Calibrate the special move labels against a fixed native-Stockfish corpus of
-   real games, especially false-positive sacrifices and depth-sensitive cases.
-4. Expand beyond the current tactical/strategic base into discovered attacks,
-   relative pins, weak squares, outposts and more specialized endgame concepts.
+3. Expand the fixed native-Stockfish classification corpus with more defensive
+   only-move, missed-win and depth-sensitive positions.
+4. Expand beyond the current tactical/strategic base into weak squares,
+   outposts, clearance/deflection motifs and more specialized endgame concepts.
 5. Exercise the generated Windows installer on a clean machine, add a release
    icon and trusted code signing, and document upgrade/uninstall behavior.
 6. Expand UI regression into the live WebSocket analysis/classification flow

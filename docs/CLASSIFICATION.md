@@ -101,5 +101,31 @@ there must be a concrete forcing opportunity that can be shown to the user.
 The evaluator requests two principal variations before a classification so it
 can compare the best and second-best choices. Deeper settings can still change
 an engine evaluation and therefore a label, just as deeper analysis can change
-other engine-backed review systems. Tests cover the thresholds, rule priority,
-mover perspective, material-sacrifice fixtures and a native Stockfish run.
+other engine-backed review systems.
+
+The native regression corpus is stored in
+`backend/tests/fixtures/classification_corpus.json`. It replays SAN moves from
+their initial position instead of trusting hand-written FEN strings. Every case
+records its public game source and runs with the bundled Stockfish 19 at depth
+16, one thread and 64 MB of hash. A fresh engine process isolates every case
+from transposition-table state.
+
+The initial corpus deliberately distinguishes four situations:
+
+- Réti-Tartakower's forcing queen sacrifice, which must be `brilliant`;
+- Lasker-Bauer's double-bishop combination, which must be `brilliant` at the
+  pinned corpus depth;
+- Colle-O'Hanlon's playable bishop sacrifice, which must not be promoted merely
+  because the static sacrifice detector recognizes it;
+- a Greek-gift illustration where several moves are already trivially winning,
+  which must stay `best` rather than become a decorative `brilliant`.
+
+These integration checks complement the fast tests for thresholds, rule
+priority, mover perspective and synthetic material-sacrifice fixtures. Run the
+corpus with:
+
+```powershell
+$env:STOCKFISH_PATH = "C:\caminho\para\stockfish.exe"
+cd backend
+.venv\Scripts\python.exe -m pytest tests/test_classification_corpus.py
+```

@@ -123,6 +123,8 @@ describe("formatPlanHint", () => {
       gives_checkmate: false,
       fork_targets: ["d7", "f7"],
       newly_pinned_targets: ["c6"],
+      newly_relative_pinned_targets: ["d5"],
+      discovered_attack_targets: ["a8"],
       newly_attacked_undefended_targets: ["d6"],
       is_castling: false,
       promotion_piece: null,
@@ -135,6 +137,10 @@ describe("formatPlanHint", () => {
 
     expect(formatPlanHint("fork_pieces", facts)).toBe("garfo em d7 e f7");
     expect(formatPlanHint("pin_piece", facts)).toBe("cravar c6 contra o rei");
+    expect(formatPlanHint("relative_pin_piece", facts)).toBe("cravar relativamente d5");
+    expect(formatPlanHint("discovered_attack", facts)).toBe(
+      "abrir ataque descoberto contra a8",
+    );
     expect(formatPlanHint("attack_loose_piece", facts)).toBe("atacar d6 sem defesa");
   });
 });

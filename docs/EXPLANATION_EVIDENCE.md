@@ -11,6 +11,10 @@ candidate with deterministic move facts.
 - check and immediate checkmate;
 - high-value pieces simultaneously attacked by the moved piece (fork targets);
 - newly created absolute pins against the king;
+- newly created relative pins where a front piece shields a more valuable
+  non-king piece on the same sliding-piece ray;
+- discovered attacks opened for another bishop, rook or queen, with the target
+  square recorded explicitly;
 - newly attacked enemy knights, bishops, rooks or queens without a same-color
   defender;
 - castling;
@@ -21,9 +25,9 @@ candidate with deterministic move facts.
 - immediate improvement in the king's pawn shield.
 
 Facts become stable plan-hint identifiers such as `secure_king`, `fork_pieces`,
-`pin_piece`, `deliver_checkmate` and `advance_passed_pawn`. Portuguese labels
-belong to the desktop presentation layer; the identifiers remain
-language-neutral for tests and provider prompts.
+`pin_piece`, `relative_pin_piece`, `discovered_attack`, `deliver_checkmate` and
+`advance_passed_pawn`. Portuguese labels belong to the desktop presentation
+layer; the identifiers remain language-neutral for tests and provider prompts.
 
 ## Authority and non-claims
 
@@ -35,8 +39,11 @@ does not claim that the king itself must move or that the checking move is good.
 
 `fork_pieces` is deliberately conservative: the moved piece must attack at
 least two enemy knights, bishops, rooks, queens or kings, and at least one of
-those attacks must be new. `pin_piece` means an absolute pin to the king. These
-facts identify geometry; Stockfish still decides whether the tactic is sound.
+those attacks must be new. `pin_piece` means an absolute pin to the king.
+`relative_pin_piece` requires the shielded piece to have a strictly higher
+material value, and never relabels an absolute king pin. `discovered_attack`
+excludes attacks made directly by the moved piece. These facts identify
+geometry; Stockfish still decides whether the tactic is sound.
 `attack_loose_piece` uses the same conservative high-value piece set and does
 not label an undefended pawn as a loose piece.
 

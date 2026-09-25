@@ -85,6 +85,8 @@ export type PlanHint =
   | "force_check_response"
   | "fork_pieces"
   | "pin_piece"
+  | "relative_pin_piece"
+  | "discovered_attack"
   | "attack_loose_piece"
   | "capture_or_exchange_material"
   | "secure_king"
@@ -239,6 +241,8 @@ export interface MoveFacts {
   gives_checkmate: boolean;
   fork_targets: string[];
   newly_pinned_targets: string[];
+  newly_relative_pinned_targets: string[];
+  discovered_attack_targets: string[];
   newly_attacked_undefended_targets: string[];
   is_castling: boolean;
   promotion_piece: string | null;

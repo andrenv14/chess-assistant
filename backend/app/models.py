@@ -30,6 +30,8 @@ PlanHint = Literal[
     "force_check_response",
     "fork_pieces",
     "pin_piece",
+    "relative_pin_piece",
+    "discovered_attack",
     "attack_loose_piece",
     "capture_or_exchange_material",
     "secure_king",
@@ -291,6 +293,8 @@ class MoveFacts(BaseModel):
     gives_checkmate: bool
     fork_targets: list[str]
     newly_pinned_targets: list[str]
+    newly_relative_pinned_targets: list[str] = Field(default_factory=list)
+    discovered_attack_targets: list[str] = Field(default_factory=list)
     newly_attacked_undefended_targets: list[str]
     is_castling: bool
     promotion_piece: str | None
