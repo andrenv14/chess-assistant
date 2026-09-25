@@ -238,13 +238,16 @@ class StubExplanationService:
     async def explain(self, evidence):
         assert evidence.candidates[0].uci == "g1f3"
         return PositionExplanation(
+            position_support_ids=["P1"],
             position_summary="Uma posição inicial equilibrada.",
             candidates=[
                 {
                     "uci": "g1f3",
+                    "support_ids": ["C1"],
                     "headline": "Desenvolva o cavalo",
                     "explanation": "O lance desenvolve uma peça.",
                     "plan_steps": ["Prepare o roque."],
+                    "opponent_reply_uci": None,
                     "opponent_response": "O adversário também pode desenvolver.",
                     "watch_for": None,
                 }

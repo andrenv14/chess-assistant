@@ -7,8 +7,8 @@ repeatable setup procedure does not count as complete.
 ## Current readiness
 
 - local analysis core: **98%**;
-- portfolio-ready release: **92%**;
-- full intended product: **91%**.
+- portfolio-ready release: **93%**;
+- full intended product: **92%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -47,6 +47,9 @@ the extension is still loaded unpacked.
   plus latest-position queuing and replay after reconnect;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
   order enforcement (`google/gemini-3.8-flash`);
+- evidence-cited LLM output: position and candidate prose must reference a
+  server-built grounding catalogue, and the named critical reply must match the
+  strongest configured Stockfish response;
 - live 2026-09-25 Lichess and Chess.com Analysis FEN extraction, including an
   `1.e4` update with full turn, castling, en passant and move-counter state;
 - live 2026-09-25 inspection of Chess.com `wc-chess-board` and Lichess
@@ -61,6 +64,10 @@ the extension is still loaded unpacked.
 - responsive analysis cockpit with a FEN board, candidate arrows, move
   selection, progressive engine controls, keyboard shortcuts and reduced-motion
   support;
+- interactive principal-variation explorer that advances the real board state
+  one ply at a time by click or keyboard, with candidate score-gap comparison;
+- browser QA at desktop and tablet widths for the analysis cockpit and PV
+  navigation;
 - automatic live-position analysis with an end-to-end mocked WebSocket UI test;
 - TypeScript contracts, structured redacted logs and engineering documentation;
 - local Ruff, Pytest, Vitest, typecheck and production builds;

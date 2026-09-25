@@ -2,17 +2,15 @@
 
 [![CI](https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml)
 
-Assistente local de xadrez para posições de análise, partidas contra bots e outros
-contextos em que assistência externa seja permitida. O projeto separa a leitura do
+Assistente local de xadrez para posições de análise e partidas lidas ao vivo no
+Chess.com e Lichess. O projeto separa a leitura do
 tabuleiro, a interface desktop e os motores nativos para que cada parte possa evoluir
 sem depender das demais.
-
-> O uso da extensão em partidas competitivas pode violar as regras da plataforma.
-> A extensão começa deliberadamente restrita às páginas de análise.
 
 ## Primeiro marco
 
 - app desktop em Electron + React com FEN, evalbar, variantes e respostas;
+- exploração interativa das variantes no tabuleiro, lance a lance;
 - backend FastAPI com Stockfish nativo;
 - perfis independentes `user`, `opponent` e `evaluator`;
 - alteração de Elo/Skill/tempo de análise sem reiniciar o app;
@@ -22,7 +20,8 @@ sem depender das demais.
   evidência determinística do Stockfish e do tabuleiro;
 - catálogo local CC0 do Lichess com identificação automática de abertura;
 - evidências determinísticas de posição e de cada candidato do Stockfish;
-- explicações estruturadas e validadas via OpenRouter/OpenResponses;
+- explicações estruturadas e validadas via OpenRouter/OpenResponses, ancoradas
+  em evidências do Stockfish e do analisador determinístico;
 - perfis e histórico recente persistidos localmente em SQLite.
 
 ## Arquitetura
@@ -111,8 +110,9 @@ Para gerar a extensão:
 npm run build:extension
 ```
 
-Carregue `apps/extension/dist` como extensão descompactada no Chrome/Edge. Neste
-marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
+Carregue `apps/extension/dist` como extensão descompactada no Chrome/Edge. Ela
+reconhece páginas de análise e partidas ao vivo no Chess.com e Lichess e envia
+somente o estado necessário do tabuleiro ao backend local.
 
 Para criar um diretório Windows instalável sem exigir Python ou Stockfish no
 computador de destino, instale antes o grupo Python `package` e execute:

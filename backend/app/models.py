@@ -384,9 +384,11 @@ class HistoryClearResponse(BaseModel):
 
 class CandidateExplanation(BaseModel):
     uci: str
+    support_ids: list[str] = Field(min_length=1, max_length=8)
     headline: str = Field(min_length=1, max_length=100)
     explanation: str = Field(min_length=1, max_length=900)
     plan_steps: list[str] = Field(min_length=1, max_length=4)
+    opponent_reply_uci: str | None = None
     opponent_response: str = Field(min_length=1, max_length=600)
     watch_for: str | None = Field(default=None, max_length=400)
 
@@ -397,10 +399,29 @@ class CandidateExplanation(BaseModel):
             raise ValueError("plan steps must contain 1-240 characters")
         return value
 
+    @field_validator("support_ids")
+    @classmethod
+    def validate_support_ids(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)) or any(
+            not item.startswith("C") or not item[1:].isdigit() for item in value
+        ):
+            raise ValueError("candidate support IDs must be unique C-prefixed identifiers")
+        return value
+
 
 class PositionExplanation(BaseModel):
+    position_support_ids: list[str] = Field(min_length=1, max_length=10)
     position_summary: str = Field(min_length=1, max_length=900)
     candidates: list[CandidateExplanation] = Field(max_length=5)
+
+    @field_validator("position_support_ids")
+    @classmethod
+    def validate_position_support_ids(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)) or any(
+            not item.startswith("P") or not item[1:].isdigit() for item in value
+        ):
+            raise ValueError("position support IDs must be unique P-prefixed identifiers")
+        return value
 
 
 class ExplainedAnalysisResponse(BaseModel):

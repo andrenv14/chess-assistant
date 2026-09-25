@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Protocol, get_args
 from urllib.parse import urlparse
@@ -28,9 +29,41 @@ Não afirme qual foi o último lance: uma FEN isolada não contém esse históri
 Pressão geométrica na zona do rei não significa ataque vencedor ou ameaça forçada.
 Apresente estrutura e tipo de final como fatos; derive planos apenas das variantes fornecidas.
 Se a evidência não sustentar uma afirmação, diga que ela não foi determinada.
+Selecione support_ids para cada conclusão; eles serão validados pelo aplicativo.
+Quando houver defesa principal, explique exatamente a resposta indicada por
+required_opponent_reply_uci.
 Responda somente com JSON compatível com o esquema solicitado, sem Markdown."""
 
 INTERNAL_PLAN_HINTS = frozenset(get_args(PlanHint))
+
+PLAN_GROUNDING_LABELS: dict[str, str] = {
+    "deliver_checkmate": "finaliza a partida com xeque-mate",
+    "force_check_response": "dá xeque e força uma resposta imediata",
+    "fork_pieces": "cria um garfo",
+    "pin_piece": "cria uma cravada contra o rei",
+    "relative_pin_piece": "cria uma cravada relativa",
+    "discovered_attack": "abre um ataque descoberto",
+    "attack_loose_piece": "ataca uma peça sem defesa",
+    "capture_or_exchange_material": "captura ou troca material",
+    "secure_king": "coloca o rei em segurança",
+    "develop_and_coordinate": "desenvolve e coordena as peças",
+    "contest_center": "disputa o centro",
+    "advance_passed_pawn": "avança um peão passado",
+    "create_passed_pawn": "cria um peão passado",
+    "promote_pawn": "promove um peão",
+    "improve_king_safety": "reforça a segurança do rei",
+    "occupy_outpost": "ocupa um outpost estável",
+    "create_outpost": "cria uma casa forte para uma peça",
+    "exploit_open_file": "ativa uma torre em coluna aberta ou semiaberta",
+    "activate_rook_on_seventh": "leva uma torre à sétima fileira",
+    "pawn_break": "executa uma ruptura de peões",
+    "gain_space": "ganha espaço",
+    "improve_piece_activity": "melhora a atividade de uma peça",
+    "centralize_king": "centraliza o rei no final",
+    "remove_defender": "remove um defensor importante",
+    "interfere_attack": "interrompe uma linha de ataque",
+    "connect_rooks": "conecta as torres",
+}
 
 
 @dataclass(frozen=True)
@@ -44,27 +77,180 @@ class ExplanationProvider(Protocol):
     async def generate(self, prompt: ExplanationPrompt) -> dict[str, Any]: ...
 
 
+def _score_text(cp: int | None, mate: int | None) -> str:
+    if mate is not None:
+        return f"mate em {abs(mate)} para {'as brancas' if mate > 0 else 'as pretas'}"
+    if cp is None:
+        return "avaliação numérica indisponível"
+    return f"{cp / 100:+.2f}, sempre da perspectiva das brancas"
+
+
+def _position_supports(evidence: AnalysisEvidenceResponse) -> list[dict[str, str]]:
+    position = evidence.position
+    side = "brancas" if position.side_to_move == "white" else "pretas"
+    phase = {
+        "opening": "abertura",
+        "middlegame": "meio-jogo",
+        "endgame": "final",
+    }[position.phase]
+    statements = [
+        f"A posição está na fase de {phase}; {side} jogam.",
+        (
+            "O balanço material é de "
+            f"{position.material.balance_cp / 100:+.1f} peões para as brancas."
+        ),
+    ]
+    if evidence.analysis.opening:
+        opening = evidence.analysis.opening
+        statements.append(f"A abertura identificada é {opening.eco}: {opening.name}.")
+
+    tactics = position.tactics
+    if tactics.side_to_move_in_check:
+        statements.append("O lado a jogar está em xeque.")
+    if tactics.mate_in_one_moves:
+        statements.append(
+            "Há mate em um nos lances verificados: " + ", ".join(tactics.mate_in_one_moves) + "."
+        )
+    if tactics.checking_moves:
+        statements.append(
+            "Os xeques legais verificados são: " + ", ".join(tactics.checking_moves[:6]) + "."
+        )
+
+    pawn_parts: list[str] = []
+    if position.white_pawns.passed_squares:
+        pawn_parts.append(
+            "peões passados brancos em " + ", ".join(position.white_pawns.passed_squares)
+        )
+    if position.black_pawns.passed_squares:
+        pawn_parts.append(
+            "peões passados pretos em " + ", ".join(position.black_pawns.passed_squares)
+        )
+    if position.white_pawns.isolated_squares:
+        pawn_parts.append(
+            "peões isolados brancos em " + ", ".join(position.white_pawns.isolated_squares)
+        )
+    if position.black_pawns.isolated_squares:
+        pawn_parts.append(
+            "peões isolados pretos em " + ", ".join(position.black_pawns.isolated_squares)
+        )
+    if pawn_parts:
+        statements.append("Estrutura de peões: " + "; ".join(pawn_parts) + ".")
+
+    files = position.strategic.files
+    if files.open_files:
+        statements.append("Colunas abertas: " + ", ".join(files.open_files) + ".")
+    if position.white_king.enemy_attackers or position.black_king.enemy_attackers:
+        statements.append(
+            "Atacantes geométricos nas zonas dos reis: "
+            f"{len(position.white_king.enemy_attackers)} contra o rei branco e "
+            f"{len(position.black_king.enemy_attackers)} contra o rei preto."
+        )
+    if position.endgame.active:
+        endgame_types = []
+        if position.endgame.king_and_pawn_endgame:
+            endgame_types.append("reis e peões")
+        if position.endgame.pure_rook_endgame:
+            endgame_types.append("torres")
+        if position.endgame.opposite_colored_bishop_endgame:
+            endgame_types.append("bispos de cores opostas")
+        if position.endgame.same_colored_bishop_endgame:
+            endgame_types.append("bispos da mesma cor")
+        statements.append(
+            "O detector marcou um final"
+            + (" de " + ", ".join(endgame_types) if endgame_types else "")
+            + "."
+        )
+    if not evidence.analysis.candidates:
+        statements.append("Não há lances candidatos porque a posição é terminal.")
+    return [
+        {"id": f"P{index}", "statement": statement}
+        for index, statement in enumerate(statements, start=1)
+    ]
+
+
+def _candidate_supports(
+    evidence: AnalysisEvidenceResponse, index: int
+) -> list[dict[str, str]]:
+    candidate = evidence.candidates[index]
+    analysis = evidence.analysis.candidates[index]
+    statements = [
+        (
+            f"{candidate.san} é a opção {candidate.rank} do Stockfish, com avaliação "
+            f"{_score_text(analysis.score_cp, analysis.mate)}."
+        ),
+        "A variante principal calculada é: "
+        + (" ".join(candidate.principal_variation_san) or "não disponível")
+        + ".",
+    ]
+    for reply in candidate.opponent_replies[:3]:
+        statements.append(
+            f"A defesa {reply.san} foi calculada pelo motor; a linha segue "
+            + (" ".join(reply.pv_san) or "sem continuação publicada")
+            + "."
+        )
+    for hint in candidate.plan_hints:
+        statements.append(
+            "O analisador determinístico verificou que o lance "
+            + PLAN_GROUNDING_LABELS[hint]
+            + "."
+        )
+    return [
+        {"id": f"C{support_index}", "statement": statement}
+        for support_index, statement in enumerate(statements, start=1)
+    ]
+
+
+def _grounding_payload(evidence: AnalysisEvidenceResponse) -> dict[str, Any]:
+    return {
+        "position": _position_supports(evidence),
+        "candidates": [
+            {
+                "uci": candidate.uci,
+                "san": candidate.san,
+                "rank": candidate.rank,
+                "required_opponent_reply_uci": (
+                    candidate.opponent_replies[0].uci
+                    if candidate.opponent_replies
+                    else None
+                ),
+                "supports": _candidate_supports(evidence, index),
+            }
+            for index, candidate in enumerate(evidence.candidates)
+        ],
+    }
+
+
 def build_explanation_prompt(evidence: AnalysisEvidenceResponse) -> ExplanationPrompt:
     """Build a provider-neutral prompt whose data cannot override system rules."""
     payload = evidence.model_dump(mode="json")
     user = json.dumps(
         {
             "task": "Explique a posição e cada candidato na ordem recebida.",
+            "grounding_rules": [
+                "Cada afirmação factual deve estar apoiada pelos support_ids escolhidos.",
+                "Use somente IDs existentes no bloco grounding do item correspondente.",
+                "opponent_reply_uci deve copiar required_opponent_reply_uci exatamente.",
+                "Os IDs servem para validação e jamais devem aparecer na prosa.",
+            ],
             "required_candidate_count": len(evidence.candidates),
             "required_candidate_order": [candidate.uci for candidate in evidence.candidates],
             "output_shape": {
+                "position_support_ids": ["P1"],
                 "position_summary": "string",
                 "candidates": [
                     {
                         "uci": "string",
+                        "support_ids": ["C1"],
                         "headline": "string",
                         "explanation": "string",
                         "plan_steps": ["string"],
+                        "opponent_reply_uci": "string UCI ou null",
                         "opponent_response": "string",
                         "watch_for": "string ou null",
                     }
                 ],
             },
+            "grounding": _grounding_payload(evidence),
             "evidence": payload,
         },
         ensure_ascii=False,
@@ -102,7 +288,56 @@ class ExplanationService:
             raise ExplanationValidationError(
                 "LLM candidates must exactly match Stockfish order and UCI moves"
             )
-        serialized = json.dumps(explanation.model_dump(mode="json"), ensure_ascii=False)
+        grounding = _grounding_payload(evidence)
+        allowed_position_ids = {item["id"] for item in grounding["position"]}
+        if not set(explanation.position_support_ids).issubset(allowed_position_ids):
+            raise ExplanationValidationError(
+                "LLM position summary cited unsupported evidence"
+            )
+
+        grounding_by_uci = {item["uci"]: item for item in grounding["candidates"]}
+        for index, candidate in enumerate(explanation.candidates):
+            candidate_grounding = grounding_by_uci[candidate.uci]
+            allowed_ids = {
+                item["id"] for item in candidate_grounding["supports"]
+            }
+            if not set(candidate.support_ids).issubset(allowed_ids):
+                raise ExplanationValidationError(
+                    "LLM candidate cited unsupported evidence"
+                )
+            expected_reply = candidate_grounding["required_opponent_reply_uci"]
+            if candidate.opponent_reply_uci != expected_reply:
+                raise ExplanationValidationError(
+                    "LLM opponent reply must match the strongest Stockfish reply"
+                )
+            if index > 0:
+                human_text = " ".join(
+                    [candidate.headline, candidate.explanation, *candidate.plan_steps]
+                )
+                if re.search(
+                    r"\b(melhor (?:lance|jogada|opção)|primeira escolha|"
+                    r"principal escolha|única escolha)\b",
+                    human_text,
+                    flags=re.IGNORECASE,
+                ):
+                    raise ExplanationValidationError(
+                        "LLM promoted a lower-ranked candidate above Stockfish"
+                    )
+
+        human_payload = {
+            "position_summary": explanation.position_summary,
+            "candidates": [
+                {
+                    "headline": item.headline,
+                    "explanation": item.explanation,
+                    "plan_steps": item.plan_steps,
+                    "opponent_response": item.opponent_response,
+                    "watch_for": item.watch_for,
+                }
+                for item in explanation.candidates
+            ],
+        }
+        serialized = json.dumps(human_payload, ensure_ascii=False)
         if any(identifier in serialized for identifier in INTERNAL_PLAN_HINTS):
             raise ExplanationValidationError(
                 "LLM response exposed an internal chess evidence identifier"

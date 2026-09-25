@@ -15,6 +15,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json"
   },
+  "dependencies": {
+    "chess.js": "^1.4.0"
+  },
   "devDependencies": {
     "@chess-assistant/contracts": "*",
     "@types/node": "^24.3.1",

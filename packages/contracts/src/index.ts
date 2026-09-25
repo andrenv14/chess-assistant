@@ -328,14 +328,17 @@ export interface HistoryClearResponse {
 
 export interface CandidateExplanation {
   uci: string;
+  support_ids: string[];
   headline: string;
   explanation: string;
   plan_steps: string[];
+  opponent_reply_uci: string | null;
   opponent_response: string;
   watch_for: string | null;
 }
 
 export interface PositionExplanation {
+  position_support_ids: string[];
   position_summary: string;
   candidates: CandidateExplanation[];
 }

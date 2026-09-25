@@ -13,6 +13,8 @@ The prompt contains:
 - opening metadata when available;
 - deterministic position features;
 - candidate facts and language-neutral plan hints.
+- a compact grounding catalogue whose opaque IDs map to deterministic
+  Stockfish, board and opening statements.
 
 The system message treats every string inside the evidence JSON as untrusted
 data. Prompts and complete FENs are never written to logs.
@@ -23,13 +25,21 @@ The provider receives the generated JSON Schema for `PositionExplanation` and
 must return:
 
 - one position summary;
+- one or more valid grounding IDs for that summary;
 - exactly one explanation for every Stockfish candidate;
 - the same UCI moves in exactly the same order;
+- one or more candidate-specific grounding IDs;
 - a short headline, natural explanation, one to four plan steps, the opponent's
-  response and an optional warning for each candidate.
+  response and an optional warning for each candidate;
+- the exact UCI of the strongest configured opponent reply, or `null` when the
+  engine returned no reply.
 
 Candidate text and list lengths are bounded. The backend rejects missing,
-invented or reordered moves even when the JSON itself is otherwise valid.
+invented or reordered moves even when the JSON itself is otherwise valid. It
+also rejects nonexistent support IDs, a mismatched opponent reply and any
+lower-ranked candidate that the prose promotes to "best". Grounding IDs stay
+internal: the desktop shows a human-readable verification badge and the
+authoritative score/PV, never the IDs.
 
 The schema intentionally has no fields for engine score, best-move rank,
 classification or human move probability. Therefore model output cannot replace
@@ -43,7 +53,7 @@ OpenResponses endpoint. Structured Outputs receive the Pydantic model as
 that cannot honor the schema is rejected rather than silently ignoring it.
 Requests set `store=false`, cap output tokens, use a bounded timeout and retry a
 network failure at most once. The service then performs the additional
-chess-specific UCI/order validation.
+chess-specific UCI/order/grounding validation.
 
 The default model is `google/gemini-3.8-flash`. Model and gateway remain
 configuration values and can be changed without altering the chess contracts.

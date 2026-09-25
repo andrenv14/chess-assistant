@@ -12,7 +12,7 @@ import type {
   PositionFeaturesResponse,
 } from "@chess-assistant/contracts";
 import { logEvent } from "@chess-assistant/contracts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChessBoard } from "./ChessBoard";
 import {
@@ -34,6 +34,7 @@ import {
   formatPositionThemes,
   formatProbability,
 } from "./presentation";
+import { buildVariationFrames, candidateGapLabel } from "./variation";
 
 const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const ROLES: EngineRole[] = ["user", "opponent", "evaluator"];
@@ -218,6 +219,7 @@ export function App() {
   const [source, setSource] = useState<BrowserEvent["source"]>("manual");
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState(0);
+  const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [hoveredMove, setHoveredMove] = useState<string | null>(null);
   const [settings, setSettings] = useState<EngineSettingsResponse | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
@@ -241,7 +243,13 @@ export function App() {
       ? formatPositionThemes(positionFeatures)
       : [];
   const displayedCandidate = analysis?.candidates[selectedCandidate] ?? analysis?.candidates[0];
-  const boardMove = hoveredMove ?? displayedCandidate?.uci ?? lastMove?.uci ?? null;
+  const variationFrames = useMemo(
+    () => buildVariationFrames(fen, displayedCandidate?.pv_uci ?? []),
+    [displayedCandidate, fen],
+  );
+  const previewFrame = previewPly === null ? null : variationFrames[previewPly] ?? null;
+  const boardFen = previewFrame?.fen ?? fen;
+  const boardMove = previewFrame?.uci ?? hoveredMove ?? displayedCandidate?.uci ?? lastMove?.uci ?? null;
   const fenParts = fen.trim().split(/\s+/);
   const sideToMove = fenParts[1] === "b" ? "Pretas" : "Brancas";
   const fullMove = fenParts[5] ?? "1";
@@ -266,6 +274,7 @@ export function App() {
     setHumanView(null);
     setExplanation(null);
     setSelectedCandidate(0);
+    setPreviewPly(null);
     setHoveredMove(null);
     setBusy(false);
     setExplaining(false);
@@ -440,6 +449,32 @@ export function App() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, [actor, analysis, busy, explaining, fen, settings?.llm_configured]);
 
+  useEffect(() => {
+    const navigateVariation = (event: KeyboardEvent) => {
+      const element = event.target;
+      if (
+        element instanceof Element
+        && element.matches("input, textarea, select, [contenteditable='true']")
+      ) return;
+      if (event.key === "Escape" && previewPly !== null) {
+        event.preventDefault();
+        setPreviewPly(null);
+        return;
+      }
+      if (!variationFrames.length || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      setPreviewPly((current) => {
+        if (event.key === "ArrowRight") {
+          return current === null ? 0 : Math.min(current + 1, variationFrames.length - 1);
+        }
+        if (current === null || current === 0) return null;
+        return current - 1;
+      });
+    };
+    window.addEventListener("keydown", navigateVariation);
+    return () => window.removeEventListener("keydown", navigateVariation);
+  }, [previewPly, variationFrames.length]);
+
   async function saveProfile(role: EngineRole, value: EngineSettings) {
     const saved = await updateSettings(role, value);
     setSettings((current) => {
@@ -582,12 +617,16 @@ export function App() {
           </div>
           <div className="board-stage">
             <EvalBar cp={analysis?.evaluation_cp ?? null} mate={analysis?.evaluation_mate ?? null} />
-            <ChessBoard fen={fen} orientation={orientation} moveUci={boardMove} />
+            <ChessBoard fen={boardFen} orientation={orientation} moveUci={boardMove} />
           </div>
           <div className="board-meta">
             <span><b>{sideToMove}</b> jogam</span>
             <span>Lance {fullMove}</span>
-            {displayedCandidate && (
+            {previewFrame ? (
+              <span className="board-meta__candidate board-meta__candidate--preview">
+                Variante <b>{previewFrame.ply}/{variationFrames.length}</b> · {previewFrame.san}
+              </span>
+            ) : displayedCandidate && (
               <span className="board-meta__candidate">
                 Prévia: <b>{displayedCandidate.san}</b>
               </span>
@@ -643,7 +682,12 @@ export function App() {
               <article className="insight-card explanation-summary">
                 <span className="insight-card__icon" aria-hidden="true">✦</span>
                 <div>
-                  <p className="eyebrow">LEITURA DA POSIÇÃO</p>
+                  <div className="explanation-summary__heading">
+                    <p className="eyebrow">LEITURA DA POSIÇÃO</p>
+                    <span className="trust-badge">
+                      <i /> {explanation.position_support_ids.length} sinais verificados
+                    </span>
+                  </div>
                   <p>{explanation.position_summary}</p>
                 </div>
               </article>
@@ -688,6 +732,11 @@ export function App() {
               const evidence = candidateEvidence[index];
               const prose = explanation?.candidates.find((item) => item.uci === move.uci);
               const selected = index === selectedCandidate;
+              const gap = candidateGapLabel(
+                analysis.candidates[0]?.score_cp ?? null,
+                move.score_cp,
+                fenParts[1] === "b" ? "black" : "white",
+              );
               return (
                 <article
                   className={`move${selected ? " move--selected" : ""}`}
@@ -697,7 +746,10 @@ export function App() {
                 >
                   <button
                     className="move__summary"
-                    onClick={() => setSelectedCandidate(index)}
+                    onClick={() => {
+                      setSelectedCandidate(index);
+                      setPreviewPly(null);
+                    }}
                     onFocus={() => setHoveredMove(move.uci)}
                     onBlur={() => setHoveredMove(null)}
                     aria-expanded={selected}
@@ -705,12 +757,14 @@ export function App() {
                     <span className="rank">{index + 1}</span>
                     <span className="move__name">
                       <strong>{move.san}</strong>
-                      <code>{move.uci}</code>
+                      <code>{move.uci}{index > 0 && gap ? ` · ${gap}` : ""}</code>
                     </span>
                     <span className="move__score">{formatEvaluation(move.score_cp, move.mate)}</span>
                     <span className="move__chevron" aria-hidden="true">›</span>
                   </button>
-                  <p className="variation"><span>Linha</span>{move.pv_san.join(" ")}</p>
+                  {!selected && (
+                    <p className="variation"><span>Linha</span>{move.pv_san.join(" ")}</p>
+                  )}
                   {evidence && evidence.plan_hints.length > 0 && (
                     <div className="plan-hints">
                       {evidence.plan_hints.map((hint) => (
@@ -718,13 +772,83 @@ export function App() {
                       ))}
                     </div>
                   )}
+                  {selected && variationFrames.length > 0 && (
+                    <div className="variation-explorer">
+                      <div className="variation-explorer__heading">
+                        <div>
+                          <p className="eyebrow">VARIANTE CALCULADA</p>
+                          <strong>Explore a linha no tabuleiro</strong>
+                        </div>
+                        <span>{previewFrame ? `${previewFrame.ply}/${variationFrames.length}` : "início"}</span>
+                      </div>
+                      <div className="variation-explorer__moves" aria-label="Lances da variante">
+                        {variationFrames.map((frame, ply) => (
+                          <button
+                            className={previewPly === ply ? "variation-explorer__active" : ""}
+                            key={`${frame.uci}-${ply}`}
+                            onClick={() => setPreviewPly(ply)}
+                            title={`Mostrar a posição após ${frame.san}`}
+                          >
+                            <small>{Math.floor(ply / 2) + 1}{ply % 2 ? "…" : "."}</small>
+                            {move.pv_san[ply] ?? frame.san}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="variation-explorer__controls">
+                        <button onClick={() => setPreviewPly(null)} disabled={previewPly === null}>
+                          Posição inicial
+                        </button>
+                        <span>Use ← → para navegar</span>
+                        <div>
+                          <button
+                            aria-label="Lance anterior"
+                            onClick={() => setPreviewPly((current) => current === null || current === 0 ? null : current - 1)}
+                            disabled={previewPly === null}
+                          >←</button>
+                          <button
+                            aria-label="Próximo lance"
+                            onClick={() => setPreviewPly((current) => current === null ? 0 : Math.min(current + 1, variationFrames.length - 1))}
+                            disabled={previewPly === variationFrames.length - 1}
+                          >→</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {selected && prose && (
-                    <div className="explanation">
-                      <strong>{prose.headline}</strong>
-                      <p>{prose.explanation}</p>
-                      <ol>{prose.plan_steps.map((step) => <li key={step}>{step}</li>)}</ol>
-                      <p><b>Resposta:</b> {prose.opponent_response}</p>
-                      {prose.watch_for && <p><b>Atenção:</b> {prose.watch_for}</p>}
+                    <div className="explanation explanation--grounded">
+                      <div className="explanation__heading">
+                        <div>
+                          <p className="eyebrow">EXPLICAÇÃO ANCORADA</p>
+                          <strong>{prose.headline}</strong>
+                        </div>
+                        <span className="trust-badge"><i /> Stockfish verificado</span>
+                      </div>
+                      <p className="explanation__lead">{prose.explanation}</p>
+                      <div className="explanation__grid">
+                        <section>
+                          <span className="explanation__icon">01</span>
+                          <div>
+                            <b>Plano prático</b>
+                            <ol>{prose.plan_steps.map((step) => <li key={step}>{step}</li>)}</ol>
+                          </div>
+                        </section>
+                        <section>
+                          <span className="explanation__icon">↳</span>
+                          <div>
+                            <b>Resposta crítica</b>
+                            <p>{prose.opponent_response}</p>
+                          </div>
+                        </section>
+                        {prose.watch_for && (
+                          <section className="explanation__warning">
+                            <span className="explanation__icon">!</span>
+                            <div><b>Fique atento</b><p>{prose.watch_for}</p></div>
+                          </section>
+                        )}
+                      </div>
+                      <footer>
+                        Baseado em {prose.support_ids.length} sinais objetivos · PV com {move.pv_uci.length} meios-lances
+                      </footer>
                     </div>
                   )}
                   {selected && move.replies.length > 0 && (

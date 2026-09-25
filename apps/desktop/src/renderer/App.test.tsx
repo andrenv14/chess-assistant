@@ -166,8 +166,8 @@ describe("App integration surface", () => {
             san: "Nf3",
             score_cp: 24,
             mate: null,
-            pv_uci: ["g1f3"],
-            pv_san: ["Nf3"],
+            pv_uci: ["g1f3", "b8c6"],
+            pv_san: ["Nf3", "Nc6"],
             replies: [],
           },
           {
@@ -214,6 +214,19 @@ describe("App integration surface", () => {
     expect(document.querySelector('[data-square="f3"]')?.classList).toContain(
       "chessboard__square--to",
     );
+
+    const variationMoves = document.querySelectorAll<HTMLButtonElement>(
+      ".variation-explorer__moves button",
+    );
+    expect(variationMoves).toHaveLength(2);
+    await act(async () => variationMoves[1]!.click());
+    expect(document.querySelector('[data-square="b8"]')?.classList).toContain(
+      "chessboard__square--from",
+    );
+    expect(document.querySelector('[data-square="c6"]')?.classList).toContain(
+      "chessboard__square--to",
+    );
+    expect(document.body.textContent).toContain("Variante 2/2");
 
     const secondCandidate = Array.from(document.querySelectorAll<HTMLButtonElement>(".move__summary"))
       .find((button) => button.textContent?.includes("Bc4"));

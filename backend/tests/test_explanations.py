@@ -14,7 +14,7 @@ from app.explanations import (
     OpenAIExplanationProvider,
     build_explanation_prompt,
 )
-from app.models import AnalyzeResponse, MoveAnalysis, PositionExplanation
+from app.models import AnalyzeResponse, MoveAnalysis, PositionExplanation, ReplyAnalysis
 
 
 def evidence_for(*moves: str):
@@ -47,13 +47,16 @@ def evidence_for(*moves: str):
 
 def valid_payload(*moves: str) -> dict[str, object]:
     return {
+        "position_support_ids": ["P1", "P2"],
         "position_summary": "A posição ainda está equilibrada e pede desenvolvimento.",
         "candidates": [
             {
                 "uci": move,
+                "support_ids": ["C1", "C2"],
                 "headline": "Desenvolvimento natural",
                 "explanation": "O lance ativa uma peça sem alterar a avaliação fornecida.",
                 "plan_steps": ["Complete o desenvolvimento."],
+                "opponent_reply_uci": None,
                 "opponent_response": "Considere a resposta principal indicada pelo motor.",
                 "watch_for": None,
             }
@@ -86,6 +89,11 @@ def test_prompt_marks_stockfish_as_authority_and_serializes_evidence() -> None:
     assert "derive planos apenas das variantes" in prompt.system
     assert payload["required_candidate_count"] == 2
     assert payload["required_candidate_order"] == ["g1f3", "e2e4"]
+    assert payload["grounding"]["position"][0]["id"] == "P1"
+    assert payload["grounding"]["candidates"][0]["supports"][0]["id"] == "C1"
+    assert payload["grounding"]["candidates"][0]["supports"][0]["statement"].startswith(
+        "Nf3 é a opção 1 do Stockfish"
+    )
     assert payload["evidence"]["candidates"][0]["plan_hints"] == [
         "develop_and_coordinate"
     ]
@@ -118,7 +126,11 @@ def test_accepts_terminal_position_without_candidates() -> None:
     )
     evidence = build_analysis_evidence(analysis)
     provider = FakeProvider(
-        {"position_summary": "A partida terminou em xeque-mate.", "candidates": []}
+        {
+            "position_support_ids": ["P1", "P3"],
+            "position_summary": "A partida terminou em xeque-mate.",
+            "candidates": [],
+        }
     )
 
     result = asyncio.run(ExplanationService(provider).explain(evidence))
@@ -150,6 +162,43 @@ def test_rejects_explanation_that_exposes_internal_plan_hint() -> None:
 
     with pytest.raises(ExplanationValidationError, match="internal"):
         asyncio.run(ExplanationService(provider).explain(evidence))
+
+
+def test_rejects_invented_grounding_reference() -> None:
+    evidence = evidence_for("g1f3")
+    payload = valid_payload("g1f3")
+    payload["candidates"][0]["support_ids"] = ["C99"]
+
+    with pytest.raises(ExplanationValidationError, match="unsupported evidence"):
+        asyncio.run(ExplanationService(FakeProvider(payload)).explain(evidence))
+
+
+def test_rejects_opponent_reply_that_does_not_match_stockfish() -> None:
+    evidence = evidence_for("g1f3")
+    evidence.candidates[0].opponent_replies = [
+        ReplyAnalysis(
+            uci="d7d5",
+            san="d5",
+            score_cp=20,
+            mate=None,
+            pv_uci=["d7d5"],
+            pv_san=["d5"],
+        )
+    ]
+    payload = valid_payload("g1f3")
+    payload["candidates"][0]["opponent_reply_uci"] = "g8f6"
+
+    with pytest.raises(ExplanationValidationError, match="strongest Stockfish reply"):
+        asyncio.run(ExplanationService(FakeProvider(payload)).explain(evidence))
+
+
+def test_rejects_lower_rank_candidate_claiming_to_be_best() -> None:
+    evidence = evidence_for("g1f3", "e2e4")
+    payload = valid_payload("g1f3", "e2e4")
+    payload["candidates"][1]["headline"] = "O melhor lance da posição"
+
+    with pytest.raises(ExplanationValidationError, match="lower-ranked"):
+        asyncio.run(ExplanationService(FakeProvider(payload)).explain(evidence))
 
 
 def test_rejects_malformed_output_without_echoing_provider_content() -> None:

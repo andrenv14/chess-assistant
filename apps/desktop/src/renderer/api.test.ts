@@ -19,7 +19,7 @@ describe("explainPosition", () => {
         position: {},
         candidates: [],
       },
-      explanation: { position_summary: "Resumo", candidates: [] },
+      explanation: { position_support_ids: ["P1"], position_summary: "Resumo", candidates: [] },
     };
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(payload), {
