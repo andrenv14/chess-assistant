@@ -37,6 +37,28 @@ import {
 const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const ROLES: EngineRole[] = ["user", "opponent", "evaluator"];
 
+export function classificationEvidenceText(move: MoveClassificationResponse): string {
+  const evidence = move.evidence;
+  if (evidence.rule === "brilliant_sacrifice") {
+    return "O Stockfish aprovou um sacrifício real de peça sem deixar a posição ruim.";
+  }
+  if (evidence.rule === "unique_best_move") {
+    const alternative = evidence.second_best_move_san ?? "a segunda opção";
+    const loss = evidence.second_best_expected_points_loss ?? 0;
+    return `${move.san} foi a única escolha forte: ${alternative} perderia ` +
+      `${(loss * 100).toFixed(1)} pontos percentuais de expectativa.`;
+  }
+  if (evidence.rule === "missed_forcing_opportunity") {
+    return `Havia uma oportunidade forçante com ${move.best_move_san}, mas ela não foi aproveitada.`;
+  }
+  if (evidence.rule === "book") {
+    return "A posição resultante consta no catálogo local de aberturas do Lichess.";
+  }
+  return evidence.played_is_engine_best
+    ? "O lance coincide com a primeira escolha do avaliador Stockfish."
+    : "O rótulo segue a perda de expectativa calculada pelo avaliador Stockfish.";
+}
+
 function EvalBar({ cp, mate }: { cp: number | null; mate: number | null }) {
   const whitePercent = evaluationToWhitePercent(cp, mate);
 
@@ -395,6 +417,7 @@ export function App() {
                   Perda de expectativa: {(lastMove.expected_points_loss * 100).toFixed(1)} pontos
                   percentuais. Melhor lance: <b>{lastMove.best_move_san}</b>.
                 </p>
+                <p>{classificationEvidenceText(lastMove)}</p>
                 {lastMove.opening && (
                   <p>
                     Posição de livro: <b>{lastMove.opening.name}</b> ({lastMove.opening.eco}).

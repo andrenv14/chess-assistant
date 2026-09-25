@@ -67,9 +67,30 @@ try {
   assert(Array.isArray(analysis.candidates), "analysis candidates are missing");
   assert(analysis.candidates.length === 3, "packaged backend did not return MultiPV 3");
 
+  const classificationResponse = await fetch("http://127.0.0.1:8765/api/classify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      before_fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      after_fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+    }),
+  });
+  assert(
+    classificationResponse.ok,
+    `classification failed with HTTP ${classificationResponse.status}`,
+  );
+  const classification = await classificationResponse.json();
+  assert(classification.classification === "book", "opening move did not retain Book priority");
+  assert(classification.evidence?.rule === "book", "classification evidence is missing");
+  assert(
+    typeof classification.evidence.second_best_move_uci === "string",
+    "second-best classification evidence is missing",
+  );
+
   console.log(
     `Packaged backend OK: ${health.opening_positions} openings, ` +
-      `${analysis.candidates.length} candidates, first move ${analysis.candidates[0].san}.`,
+      `${analysis.candidates.length} candidates, first move ${analysis.candidates[0].san}, ` +
+      `classification ${classification.classification}.`,
   );
 } catch (error) {
   if (recentOutput) process.stderr.write(recentOutput);

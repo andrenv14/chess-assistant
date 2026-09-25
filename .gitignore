@@ -21,7 +21,7 @@ backend/vendor/
 backend/build/
 backend/dist/
 backend/*.spec
-backend/pip-build-*/
+backend/pip-*/
 backend/pytest-of-*/
 .DS_Store
 Thumbs.db

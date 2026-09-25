@@ -8,12 +8,22 @@ EngineRole = Literal["user", "opponent", "evaluator"]
 Actor = Literal["user", "opponent"]
 MoveClassificationKey = Literal[
     "book",
+    "brilliant",
+    "great",
     "best",
     "excellent",
     "good",
     "inaccuracy",
     "mistake",
+    "miss",
     "blunder",
+]
+MoveClassificationRule = Literal[
+    "book",
+    "brilliant_sacrifice",
+    "unique_best_move",
+    "missed_forcing_opportunity",
+    "expected_points",
 ]
 PlanHint = Literal[
     "deliver_checkmate",
@@ -132,6 +142,17 @@ class ClassifyMoveRequest(BaseModel):
     _validate_after = field_validator("after_fen")(AnalyzeRequest.validate_fen.__func__)
 
 
+class MoveClassificationEvidence(BaseModel):
+    rule: MoveClassificationRule
+    played_is_engine_best: bool
+    sacrifice_detected: bool
+    best_move_is_forcing: bool
+    second_best_move_uci: str | None
+    second_best_move_san: str | None
+    second_best_expected_points: float | None
+    second_best_expected_points_loss: float | None
+
+
 class MoveClassificationResponse(BaseModel):
     uci: str
     san: str
@@ -147,6 +168,7 @@ class MoveClassificationResponse(BaseModel):
     evaluation_before_mate: int | None
     evaluation_after_cp: int | None
     evaluation_after_mate: int | None
+    evidence: MoveClassificationEvidence
     opening: OpeningInfo | None = None
 
 

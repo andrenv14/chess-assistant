@@ -3,8 +3,9 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MoveClassificationResponse } from "@chess-assistant/contracts";
 
-import { App } from "./App";
+import { App, classificationEvidenceText } from "./App";
 
 const api = vi.hoisted(() => ({
   analyzeEvidence: vi.fn(),
@@ -142,5 +143,56 @@ describe("App integration surface", () => {
       );
       expect(document.body.textContent).toContain("Força de user salva e aplicada sem reiniciar");
     });
+  });
+});
+
+describe("classification evidence copy", () => {
+  const baseMove = {
+    uci: "d3h7",
+    san: "Bxh7+",
+    best_move_uci: "d3h7",
+    best_move_san: "Bxh7+",
+    classification: "brilliant",
+    label: "Brilhante",
+    symbol: "!!",
+    expected_points_before: 0.76,
+    expected_points_after: 0.75,
+    expected_points_loss: 0.01,
+    evaluation_before_cp: 120,
+    evaluation_before_mate: null,
+    evaluation_after_cp: 115,
+    evaluation_after_mate: null,
+    opening: null,
+    evidence: {
+      rule: "brilliant_sacrifice",
+      played_is_engine_best: true,
+      sacrifice_detected: true,
+      best_move_is_forcing: true,
+      second_best_move_uci: "d3e2",
+      second_best_move_san: "Be2",
+      second_best_expected_points: 0.7,
+      second_best_expected_points_loss: 0.06,
+    },
+  } satisfies MoveClassificationResponse;
+
+  it("explains a brilliant label from deterministic sacrifice evidence", () => {
+    expect(classificationEvidenceText(baseMove)).toContain("sacrifício real");
+  });
+
+  it("names the rejected alternative for a unique great move", () => {
+    const greatMove: MoveClassificationResponse = {
+      ...baseMove,
+      classification: "great",
+      label: "Ótimo",
+      symbol: "!",
+      evidence: {
+        ...baseMove.evidence,
+        rule: "unique_best_move",
+        sacrifice_detected: false,
+        second_best_expected_points_loss: 0.13,
+      },
+    };
+
+    expect(classificationEvidenceText(greatMove)).toContain("Be2 perderia 13.0");
   });
 });

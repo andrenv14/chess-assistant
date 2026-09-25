@@ -37,6 +37,11 @@ select { padding: 10px 34px 10px 11px; }
 .classification h2 { margin: 0 0 4px; font-family: Georgia, serif; font-size: 21px; font-weight: 500; }
 .classification p { margin-bottom: 0; color: #aeb8a5; font-size: 12px; }
 .classification--inaccuracy, .classification--mistake { border-color: #766629; background: #292516; }
+.classification--great { border-color: #4d7540; background: #1a2818; }
+.classification--brilliant { border-color: #2d7b7d; background: #14292a; }
+.classification--brilliant .classification__symbol { color: #0e2626; background: #63d2d0; }
+.classification--miss { border-color: #8a5f2c; background: #2d2114; }
+.classification--miss .classification__symbol { color: #fff; background: #ba7532; }
 .classification--blunder { border-color: #7a3932; background: #2b1917; }
 .classification--blunder .classification__symbol { color: #fff; background: #a94f45; }
 .moves { display: grid; gap: 10px; }

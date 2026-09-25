@@ -29,7 +29,8 @@ forwarding plus acknowledgement, and then stops only the process it created.
 
 ## Testing strategy
 
-- Pytest covers models, chess rules, classification, APIs, WebSockets and UCI
+- Pytest covers models, chess rules, expected-points and evidence-backed special
+  classifications, APIs, WebSockets and UCI
   adapters.
 - Vitest covers TypeScript transformations, presentation rules, the React
   profile/history integration surface, extension extraction and popup behavior.

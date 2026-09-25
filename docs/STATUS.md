@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **93%**;
-- portfolio-ready release: **80%**;
-- full intended product: **79%**.
+- local analysis core: **94%**;
+- portfolio-ready release: **82%**;
+- full intended product: **81%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -21,6 +21,8 @@ the extension is still loaded unpacked.
 - three independently configurable Stockfish roles and real Stockfish 19 tests;
 - eval bar data, candidates, principal variations and opponent replies;
 - reconstruction and base classification of the played move;
+- deterministic Brilliant, Great and Miss rules with sacrifice, forcing-line
+  and unique-second-choice evidence returned to the desktop;
 - 3,815 local Lichess opening positions;
 - deterministic position and candidate facts;
 - deterministic mate-in-one, fork, absolute-pin and loose-piece motifs with
@@ -55,14 +57,14 @@ the extension is still loaded unpacked.
    covering tactics, strategy, endgames and forced mates.
 2. Exercise the built extension and desktop app together in installed form on
    both supported analysis pages.
-3. Expand move labels beyond the current objective loss bands where evidence
-   can support labels such as brilliant, great or missed opportunity.
+3. Calibrate the special move labels against a fixed native-Stockfish corpus of
+   real games, especially false-positive sacrifices and depth-sensitive cases.
 4. Expand beyond the current tactical/strategic base into discovered attacks,
    relative pins, weak squares, outposts and more specialized endgame concepts.
 5. Exercise the generated Windows installer on a clean machine, add a release
    icon and trusted code signing, and document upgrade/uninstall behavior.
-6. Expand UI-level regression coverage beyond profiles/history and add a short
-   portfolio demo flow.
+6. Expand UI regression into the live WebSocket analysis/classification flow
+   and add a short portfolio demo.
 
 Maia-3 is outside the critical path. It remains optional and can never change
 Stockfish candidates, evaluation, rank or post-move classification.

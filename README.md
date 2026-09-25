@@ -18,6 +18,8 @@ sem depender das demais.
 - alteração de Elo/Skill/tempo de análise sem reiniciar o app;
 - extensão Manifest V3 que transmite snapshots FEN ao `localhost`;
 - reconstrução e classificação do lance efetivamente jogado;
+- classificação auditável de brilhante, ótimo e oportunidade perdida com
+  evidência determinística do Stockfish e do tabuleiro;
 - catálogo local CC0 do Lichess com identificação automática de abertura;
 - evidências determinísticas de posição e de cada candidato do Stockfish;
 - explicações estruturadas e validadas via OpenRouter/OpenResponses;

@@ -62,14 +62,19 @@ class FakeAnalysisEngine:
         *,
         multipv: int,
     ) -> list[dict[str, object]]:
-        assert multipv == 1
         if board.turn == chess.WHITE:
+            assert multipv == 2
             return [
                 {
                     "pv": [chess.Move.from_uci("e2e4")],
                     "score": chess.engine.PovScore(chess.engine.Cp(50), chess.WHITE),
-                }
+                },
+                {
+                    "pv": [chess.Move.from_uci("d2d4")],
+                    "score": chess.engine.PovScore(chess.engine.Cp(45), chess.WHITE),
+                },
             ]
+        assert multipv == 1
         return [
             {
                 "pv": [chess.Move.from_uci("e7e5")],
@@ -94,3 +99,51 @@ def test_classification_keeps_the_movers_perspective(monkeypatch) -> None:
     assert result.best_move_uci == "e2e4"
     assert result.classification == "best"
     assert result.expected_points_loss == 0
+    assert result.evidence.played_is_engine_best is True
+    assert result.evidence.second_best_move_uci == "d2d4"
+
+
+class FakeBrilliantEngine:
+    def analyse(
+        self,
+        board: chess.Board,
+        _limit: chess.engine.Limit,
+        *,
+        multipv: int,
+    ) -> list[dict[str, object]]:
+        if board.turn == chess.WHITE:
+            assert multipv == 2
+            return [
+                {
+                    "pv": [chess.Move.from_uci("d3h7")],
+                    "score": chess.engine.PovScore(chess.engine.Cp(50), chess.WHITE),
+                },
+                {
+                    "pv": [chess.Move.from_uci("d3e2")],
+                    "score": chess.engine.PovScore(chess.engine.Cp(20), chess.WHITE),
+                },
+            ]
+        assert multipv == 1
+        return [
+            {
+                "pv": [chess.Move.from_uci("g8h7")],
+                "score": chess.engine.PovScore(chess.engine.Cp(-50), chess.BLACK),
+            }
+        ]
+
+
+def test_classification_combines_engine_approval_with_sacrifice_evidence(monkeypatch) -> None:
+    before = chess.Board("6k1/7p/8/8/8/3B4/8/3Q2K1 w - - 0 1")
+    after = before.copy()
+    after.push_uci("d3h7")
+    manager = StockfishManager(Path("unused-in-this-unit-test"))
+    monkeypatch.setattr(manager, "_get_engine", lambda _role: FakeBrilliantEngine())
+
+    result = manager._classify_move_sync(
+        ClassifyMoveRequest(before_fen=before.fen(), after_fen=after.fen())
+    )
+
+    assert result.classification == "brilliant"
+    assert result.symbol == "!!"
+    assert result.evidence.rule == "brilliant_sacrifice"
+    assert result.evidence.sacrifice_detected is True

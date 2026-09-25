@@ -7,7 +7,12 @@ from typing import Any
 import chess
 import chess.engine
 
-from app.classification import classify_expected_points_loss, infer_played_move
+from app.classification import (
+    classify_move_quality,
+    detects_piece_sacrifice,
+    infer_played_move,
+    is_forcing_move,
+)
 from app.logging_config import get_logger, position_id
 from app.models import (
     AnalyzeRequest,
@@ -16,6 +21,7 @@ from app.models import (
     EngineRole,
     EngineSettings,
     MoveAnalysis,
+    MoveClassificationEvidence,
     MoveClassificationResponse,
     ReplyAnalysis,
     default_profiles,
@@ -194,20 +200,46 @@ class StockfishManager:
         evaluator = self._get_engine("evaluator")
         limit = self._limit(evaluator_profile)
 
-        before_info = self._first_info(evaluator.analyse(before, limit, multipv=1))
+        before_raw = evaluator.analyse(before, limit, multipv=min(2, before.legal_moves.count()))
+        before_infos = before_raw if isinstance(before_raw, list) else [before_raw]
+        before_info = before_infos[0]
         best_move: chess.Move = before_info["pv"][0]
         best_move_san = before.san(best_move)
         before_cp, before_mate = self._score(before_info["score"])
         expected_before = self._expected_points(before_info["score"], mover, before.ply())
+
+        second_best_move: chess.Move | None = None
+        second_best_expected: float | None = None
+        if len(before_infos) > 1 and before_infos[1].get("pv"):
+            second_best_move = before_infos[1]["pv"][0]
+            second_best_expected = self._expected_points(
+                before_infos[1]["score"],
+                mover,
+                before.ply(),
+            )
 
         after = chess.Board(request.after_fen)
         after_info = self._first_info(evaluator.analyse(after, limit, multipv=1))
         after_cp, after_mate = self._score(after_info["score"])
         expected_after = self._expected_points(after_info["score"], mover, after.ply())
         expected_loss = max(0.0, expected_before - expected_after)
-        classification = classify_expected_points_loss(
+        sacrifice_detected = detects_piece_sacrifice(before, move)
+        best_move_is_forcing = is_forcing_move(before, best_move)
+        decision = classify_move_quality(
             expected_loss,
             is_book=is_book,
+            played_is_best=move == best_move,
+            expected_before=expected_before,
+            expected_after=expected_after,
+            second_best_expected=second_best_expected,
+            sacrifice_detected=sacrifice_detected,
+            best_move_is_forcing=best_move_is_forcing,
+        )
+        classification = decision.classification
+        second_best_loss = (
+            max(0.0, expected_before - second_best_expected)
+            if second_best_expected is not None
+            else None
         )
 
         response = MoveClassificationResponse(
@@ -225,6 +257,20 @@ class StockfishManager:
             evaluation_before_mate=before_mate,
             evaluation_after_cp=after_cp,
             evaluation_after_mate=after_mate,
+            evidence=MoveClassificationEvidence(
+                rule=decision.rule,
+                played_is_engine_best=move == best_move,
+                sacrifice_detected=sacrifice_detected,
+                best_move_is_forcing=best_move_is_forcing,
+                second_best_move_uci=(
+                    second_best_move.uci() if second_best_move is not None else None
+                ),
+                second_best_move_san=(
+                    before.san(second_best_move) if second_best_move is not None else None
+                ),
+                second_best_expected_points=second_best_expected,
+                second_best_expected_points_loss=second_best_loss,
+            ),
         )
         logger.info(
             "move_classified",

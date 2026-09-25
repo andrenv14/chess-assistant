@@ -63,12 +63,22 @@ export interface AnalyzeResponse {
 
 export type MoveClassificationKey =
   | "book"
+  | "brilliant"
+  | "great"
   | "best"
   | "excellent"
   | "good"
   | "inaccuracy"
   | "mistake"
+  | "miss"
   | "blunder";
+
+export type MoveClassificationRule =
+  | "book"
+  | "brilliant_sacrifice"
+  | "unique_best_move"
+  | "missed_forcing_opportunity"
+  | "expected_points";
 
 export type PlanHint =
   | "deliver_checkmate"
@@ -105,6 +115,16 @@ export interface MoveClassificationResponse {
   evaluation_before_mate: number | null;
   evaluation_after_cp: number | null;
   evaluation_after_mate: number | null;
+  evidence: {
+    rule: MoveClassificationRule;
+    played_is_engine_best: boolean;
+    sacrifice_detected: boolean;
+    best_move_is_forcing: boolean;
+    second_best_move_uci: string | null;
+    second_best_move_san: string | null;
+    second_best_expected_points: number | null;
+    second_best_expected_points_loss: number | null;
+  };
   opening: OpeningInfo | null;
 }
 
