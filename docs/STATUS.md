@@ -1,14 +1,14 @@
 # Project status
 
-Status date: 2026-09-24. Percentages describe verified scope, not elapsed time.
+Status date: 2026-09-25. Percentages describe verified scope, not elapsed time.
 They are deliberately conservative: implementation without an automated test or
 repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **85%**;
-- portfolio-ready release: **61%**;
-- full intended product: **64%**.
+- local analysis core: **88%**;
+- portfolio-ready release: **65%**;
+- full intended product: **68%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -27,6 +27,8 @@ extension.
   concrete target squares in the desktop;
 - deterministic pawn islands, connected passers, file structure, bishop pairs,
   king-zone pressure, strict endgame types and direct opposition;
+- SQLite persistence for runtime profiles and bounded recent analysis history,
+  with restore and clear controls in the desktop;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
   order enforcement (`google/gemini-3.8-flash`);
 - current Lichess Analysis and Chess.com Analysis FEN extraction;
@@ -44,10 +46,9 @@ extension.
    can support labels such as brilliant, great or missed opportunity.
 4. Expand beyond the current tactical/strategic base into discovered attacks,
    relative pins, weak squares, outposts and more specialized endgame concepts.
-5. Persist settings and analysis history.
-6. Package the desktop, backend and licensed Stockfish distribution into a
+5. Package the desktop, backend and licensed Stockfish distribution into a
    repeatable Windows installation and test it on a clean machine.
-7. Add UI-level regression tests and a short portfolio demo flow.
+6. Add UI-level regression tests and a short portfolio demo flow.
 
 Maia-3 is outside the critical path. It remains optional and can never change
 Stockfish candidates, evaluation, rank or post-move classification.

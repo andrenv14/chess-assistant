@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { explainPosition } from "./api";
+import {
+  clearAnalysisHistory,
+  explainPosition,
+  getAnalysisHistoryItem,
+  listAnalysisHistory,
+} from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -65,5 +70,51 @@ describe("explainPosition", () => {
         include_replies: true,
       }),
     ).rejects.toThrow("LLM explanation was unavailable or invalid");
+  });
+});
+
+describe("analysis history", () => {
+  it("lists, restores and clears local history through explicit endpoints", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ id: 7 }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ analysis: { fen: "test-fen" } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ deleted: 1 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await listAnalysisHistory(10);
+    await getAnalysisHistoryItem(7);
+    await clearAnalysisHistory();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:8765/api/history?limit=10",
+      undefined,
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:8765/api/history/7",
+      undefined,
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "http://127.0.0.1:8765/api/history",
+      { method: "DELETE" },
+    );
   });
 });

@@ -41,6 +41,7 @@ Lichess adapter ───┘                         │
 - produce objective and limited-strength analysis;
 - classify moves from consecutive snapshots;
 - build evidence for explanations;
+- persist engine profiles and bounded deterministic history in local SQLite;
 - redact secrets and complete game state from default logs.
 
 ### Desktop app
@@ -66,7 +67,8 @@ snapshot transport, base move classification, offline opening lookup, position
 and candidate evidence, a schema-validated LLM explanation boundary, and an
 optional Maia-3 UCI adapter. The OpenRouter/OpenResponses transport has passed a
 live end-to-end test with native Stockfish evidence and a structured Gemini 3.8
-Flash response.
+Flash response. Engine profiles and recent deterministic analyses now survive a
+backend restart through a bounded local SQLite store.
 The analysis-page adapters have been verified against current public Lichess
-and Chess.com markup. Packaging, persistence and installed-extension end-to-end
-tests remain planned.
+and Chess.com markup. Packaging and installed-extension end-to-end tests remain
+planned.

@@ -1,5 +1,6 @@
 import type {
   AnalyzeResponse,
+  AnalysisHistorySummary,
   BrowserEvent,
   CandidateEvidence,
   EngineRole,
@@ -16,8 +17,11 @@ import { useEffect, useRef, useState } from "react";
 import {
   analyzeEvidence,
   classifyMove,
+  clearAnalysisHistory,
   explainPosition,
+  getAnalysisHistoryItem,
   getSettings,
+  listAnalysisHistory,
   predictHumanMoves,
   updateSettings,
   WS_BASE,
@@ -114,6 +118,7 @@ export function App() {
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
   const [candidateEvidence, setCandidateEvidence] = useState<CandidateEvidence[]>([]);
   const [positionFeatures, setPositionFeatures] = useState<PositionFeaturesResponse | null>(null);
+  const [history, setHistory] = useState<AnalysisHistorySummary[]>([]);
   const [humanView, setHumanView] = useState<HumanPredictionResponse | null>(null);
   const [lastMove, setLastMove] = useState<MoveClassificationResponse | null>(null);
   const [explanation, setExplanation] = useState<PositionExplanation | null>(null);
@@ -159,6 +164,12 @@ export function App() {
       .catch(() => {
         logEvent("error", "settings_load_failed", { component: "desktop" });
         setStatus("Backend desconectado");
+      });
+
+    void listAnalysisHistory()
+      .then(setHistory)
+      .catch(() => {
+        logEvent("warn", "history_load_failed", { component: "desktop" });
       });
 
     const socket = new WebSocket(`${WS_BASE}/ws/desktop`);
@@ -227,6 +238,7 @@ export function App() {
       setAnalysis(result);
       setCandidateEvidence(bundle.candidates);
       setPositionFeatures(bundle.position);
+      void refreshHistory();
       logEvent("info", "analysis_completed", {
         component: "desktop",
         candidateCount: result.candidates.length,
@@ -258,6 +270,7 @@ export function App() {
       setCandidateEvidence(result.evidence.candidates);
       setPositionFeatures(result.evidence.position);
       setExplanation(result.explanation);
+      void refreshHistory();
       setStatus("Explicação concluída");
     } catch (error) {
       if (requestId !== explanationRequestId.current) return;
@@ -275,7 +288,50 @@ export function App() {
         ? { ...current, profiles: { ...current.profiles, [role]: saved } }
         : current,
     );
-    setStatus(`Força de ${role} atualizada sem reiniciar`);
+    setStatus(`Força de ${role} salva e aplicada sem reiniciar`);
+  }
+
+  async function refreshHistory() {
+    try {
+      setHistory(await listAnalysisHistory());
+    } catch {
+      logEvent("warn", "history_refresh_failed", { component: "desktop" });
+    }
+  }
+
+  async function restoreHistory(item: AnalysisHistorySummary) {
+    clearAnalysisResults();
+    const requestId = analysisRequestId.current;
+    setFen(item.fen);
+    setActor(item.actor);
+    setBusy(true);
+    setStatus("Restaurando análise…");
+    try {
+      const bundle = await getAnalysisHistoryItem(item.id);
+      if (analysisRequestId.current !== requestId) return;
+      setAnalysis(bundle.analysis);
+      setCandidateEvidence(bundle.candidates);
+      setPositionFeatures(bundle.position);
+      setStatus("Análise restaurada do histórico local");
+    } catch (error) {
+      if (analysisRequestId.current !== requestId) return;
+      logEvent("error", "history_restore_failed", { component: "desktop" });
+      setStatus(error instanceof Error ? error.message : "Falha ao restaurar histórico");
+    } finally {
+      if (analysisRequestId.current === requestId) setBusy(false);
+    }
+  }
+
+  async function clearHistory() {
+    if (!window.confirm("Apagar todo o histórico local de análises?")) return;
+    try {
+      const result = await clearAnalysisHistory();
+      setHistory([]);
+      setStatus(`${result.deleted} análises removidas do histórico local`);
+    } catch (error) {
+      logEvent("error", "history_clear_failed", { component: "desktop" });
+      setStatus(error instanceof Error ? error.message : "Falha ao limpar histórico");
+    }
   }
 
   return (
@@ -475,6 +531,41 @@ export function App() {
             Explicações por API:{" "}
             {settings?.llm_configured ? settings.llm_model : "não configuradas"}.
           </p>
+          <section className="history">
+            <div className="history__heading">
+              <div>
+                <p className="eyebrow">HISTÓRICO LOCAL</p>
+                <h3>Posições recentes</h3>
+              </div>
+              {history.length > 0 && (
+                <button className="history__clear" onClick={() => void clearHistory()}>
+                  Limpar
+                </button>
+              )}
+            </div>
+            {history.length === 0 ? (
+              <p className="history__empty">As posições analisadas aparecerão aqui.</p>
+            ) : (
+              <div className="history__items">
+                {history.map((item) => (
+                  <button
+                    className="history__item"
+                    key={item.id}
+                    onClick={() => void restoreHistory(item)}
+                  >
+                    <span>
+                      {item.opening_name ??
+                        (item.candidate_san.slice(0, 3).join(" · ") || "Posição")}
+                    </span>
+                    <small>
+                      {new Date(item.created_at).toLocaleString("pt-BR")} ·{" "}
+                      {formatEvaluation(item.evaluation_cp, item.evaluation_mate)}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
         </aside>
       </div>
     </main>

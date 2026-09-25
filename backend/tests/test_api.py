@@ -1,9 +1,22 @@
+from pathlib import Path
+
 import chess
+import pytest
 from fastapi.testclient import TestClient
 
 from app.explanations import ExplanationProviderError
 from app.main import app, maia_manager, manager
-from app.models import AnalyzeResponse, MoveAnalysis, PositionExplanation
+from app.models import AnalyzeResponse, MoveAnalysis, PositionExplanation, default_profiles
+from app.storage import LocalStore, StorageError
+
+
+@pytest.fixture(autouse=True)
+def isolated_local_store(tmp_path: Path, monkeypatch):
+    local_store = LocalStore(tmp_path / "assistant.sqlite3")
+    monkeypatch.setattr("app.main.store", local_store)
+    manager.profiles = default_profiles()
+    yield local_store
+    manager.profiles = default_profiles()
 
 
 def test_health_and_settings_are_available_without_stockfish() -> None:
@@ -14,6 +27,8 @@ def test_health_and_settings_are_available_without_stockfish() -> None:
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
     assert health.json()["opening_positions"] >= 3_800
+    assert health.json()["storage_available"] is True
+    assert health.json()["history_count"] == 0
     assert profiles.status_code == 200
     assert set(profiles.json()["profiles"]) == {"user", "opponent", "evaluator"}
 
@@ -36,6 +51,57 @@ def test_profile_can_be_changed_at_runtime() -> None:
 
     assert response.status_code == 200
     assert response.json()["elo"] == 2050
+
+
+def test_profile_is_restored_after_backend_restart() -> None:
+    payload = {
+        "enabled": True,
+        "limit_strength": True,
+        "elo": 2050,
+        "skill_level": 13,
+        "move_time_ms": 350,
+        "depth": None,
+        "multipv": 3,
+        "threads": 1,
+        "hash_mb": 128,
+    }
+
+    with TestClient(app) as client:
+        assert client.put("/api/settings/user", json=payload).status_code == 200
+
+    manager.profiles = default_profiles()
+    with TestClient(app) as restarted_client:
+        restored = restarted_client.get("/api/settings")
+
+    assert restored.json()["profiles"]["user"]["elo"] == 2050
+
+
+def test_storage_failure_does_not_disable_runtime_profiles(monkeypatch) -> None:
+    def fail_initialization() -> None:
+        raise StorageError("test storage failure")
+
+    monkeypatch.setattr("app.main.store.initialize", fail_initialization)
+    payload = {
+        "enabled": True,
+        "limit_strength": True,
+        "elo": 1900,
+        "skill_level": 11,
+        "move_time_ms": 300,
+        "depth": None,
+        "multipv": 2,
+        "threads": 1,
+        "hash_mb": 64,
+    }
+
+    with TestClient(app) as client:
+        health = client.get("/health")
+        updated = client.put("/api/settings/user", json=payload)
+        history = client.get("/api/history")
+
+    assert health.json()["storage_available"] is False
+    assert updated.status_code == 200
+    assert updated.json()["elo"] == 1900
+    assert history.status_code == 503
 
 
 def test_extension_event_is_forwarded_to_desktop() -> None:
@@ -140,6 +206,31 @@ def _analysis_for_starting_position() -> AnalyzeResponse:
             )
         ],
     )
+
+
+def test_analysis_history_can_be_listed_restored_and_cleared(monkeypatch) -> None:
+    async def analyze(_request):
+        return _analysis_for_starting_position()
+
+    monkeypatch.setattr(manager, "analyze", analyze)
+    with TestClient(app) as client:
+        analyzed = client.post(
+            "/api/evidence",
+            json={"fen": chess.STARTING_FEN, "actor": "user"},
+        )
+        history = client.get("/api/history")
+        history_id = history.json()[0]["id"]
+        restored = client.get(f"/api/history/{history_id}")
+        cleared = client.delete("/api/history")
+        missing = client.get(f"/api/history/{history_id}")
+
+    assert analyzed.status_code == 200
+    assert history.status_code == 200
+    assert history.json()[0]["candidate_san"] == ["Nf3"]
+    assert restored.status_code == 200
+    assert restored.json()["analysis"]["fen"] == chess.STARTING_FEN
+    assert cleared.json() == {"deleted": 1}
+    assert missing.status_code == 404
 
 
 class StubExplanationService:

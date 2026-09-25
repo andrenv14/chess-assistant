@@ -21,6 +21,7 @@ sem depender das demais.
 - catálogo local CC0 do Lichess com identificação automática de abertura;
 - evidências determinísticas de posição e de cada candidato do Stockfish;
 - explicações estruturadas e validadas via OpenRouter/OpenResponses.
+- perfis e histórico recente persistidos localmente em SQLite.
 
 ## Arquitetura
 
@@ -118,6 +119,8 @@ marco ela só tem acesso a `lichess.org/analysis` e `chess.com/analysis`.
 - `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
 - `POST /api/human-prediction` — candidatos humanos opcionais via Maia-3;
 - `POST /api/features` — fatos determinísticos da posição para explicações;
+- `GET /api/history` e `GET /api/history/{id}` — histórico local e restauração;
+- `DELETE /api/history` — limpa somente o histórico de análises;
 - `WS /ws/extension` — eventos vindos do navegador;
 - `WS /ws/desktop` — eventos consumidos pelo app.
 
@@ -136,11 +139,13 @@ Exemplo de alteração de força:
 
 ## Próximos marcos
 
-1. ampliar classificadores determinísticos de tática, estrutura de peões,
-   segurança do rei e final;
-2. adaptadores de tabuleiro mais robustos, começando por Lichess Analysis;
-3. persistência de sessões e histórico de posições;
-4. empacotamento do backend e Stockfish com o app desktop.
+1. validar a extensão compilada junto do desktop nas páginas de análise do
+   Lichess e Chess.com;
+2. ampliar os classificadores e a regressão de táticas, estratégia, finais e
+   classificação pós-lance;
+3. criar testes de interface e um fluxo curto de demonstração;
+4. empacotar desktop, backend e Stockfish em uma instalação Windows
+   reproduzível.
 
 ## Documentação de engenharia
 
@@ -153,5 +158,6 @@ Exemplo de alteração de força:
 - [Evidências determinísticas da posição](docs/POSITION_FEATURES.md)
 - [Evidências por candidato para explicações](docs/EXPLANATION_EVIDENCE.md)
 - [Contrato seguro das explicações por LLM](docs/LLM_EXPLANATIONS.md)
+- [Persistência local e histórico](docs/PERSISTENCE.md)
 - [Adaptadores do Lichess e Chess.com](docs/SITE_ADAPTERS.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)

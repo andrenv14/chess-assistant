@@ -1,5 +1,6 @@
 import type {
   AnalysisEvidenceResponse,
+  AnalysisHistorySummary,
   AnalyzeRequest,
   AnalyzeResponse,
   ClassifyMoveRequest,
@@ -9,6 +10,7 @@ import type {
   ExplainedAnalysisResponse,
   HumanPredictionRequest,
   HumanPredictionResponse,
+  HistoryClearResponse,
   MoveClassificationResponse,
 } from "@chess-assistant/contracts";
 
@@ -81,4 +83,16 @@ export function predictHumanMoves(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+export function listAnalysisHistory(limit = 20): Promise<AnalysisHistorySummary[]> {
+  return request(`/api/history?limit=${limit}`);
+}
+
+export function getAnalysisHistoryItem(historyId: number): Promise<AnalysisEvidenceResponse> {
+  return request(`/api/history/${historyId}`);
+}
+
+export function clearAnalysisHistory(): Promise<HistoryClearResponse> {
+  return request("/api/history", { method: "DELETE" });
 }

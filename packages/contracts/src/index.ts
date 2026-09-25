@@ -245,6 +245,22 @@ export interface AnalysisEvidenceResponse {
   candidates: CandidateEvidence[];
 }
 
+export interface AnalysisHistorySummary {
+  id: number;
+  created_at: string;
+  fen: string;
+  actor: "user" | "opponent";
+  evaluation_cp: number | null;
+  evaluation_mate: number | null;
+  opening_eco: string | null;
+  opening_name: string | null;
+  candidate_san: string[];
+}
+
+export interface HistoryClearResponse {
+  deleted: number;
+}
+
 export interface CandidateExplanation {
   uci: string;
   headline: string;

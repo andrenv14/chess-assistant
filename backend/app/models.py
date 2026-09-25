@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 import chess
@@ -292,6 +293,22 @@ class AnalysisEvidenceResponse(BaseModel):
     analysis: AnalyzeResponse
     position: PositionFeaturesResponse
     candidates: list[CandidateEvidence]
+
+
+class AnalysisHistorySummary(BaseModel):
+    id: int
+    created_at: datetime
+    fen: str
+    actor: Actor
+    evaluation_cp: int | None
+    evaluation_mate: int | None
+    opening_eco: str | None
+    opening_name: str | None
+    candidate_san: list[str]
+
+
+class HistoryClearResponse(BaseModel):
+    deleted: int
 
 
 class CandidateExplanation(BaseModel):
