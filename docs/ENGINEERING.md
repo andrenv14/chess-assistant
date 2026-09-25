@@ -31,8 +31,8 @@ forwarding plus acknowledgement, and then stops only the process it created.
 
 - Pytest covers models, chess rules, classification, APIs, WebSockets and UCI
   adapters.
-- Vitest covers TypeScript transformations, presentation rules and extension
-  extraction logic.
+- Vitest covers TypeScript transformations, presentation rules, the React
+  profile/history integration surface, extension extraction and popup behavior.
 - Real-engine tests will be marked separately so the fast suite does not depend
   on a locally installed binary. Set `STOCKFISH_PATH` and run
   `pytest -m integration` to exercise native UCI processes.

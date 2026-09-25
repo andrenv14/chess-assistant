@@ -6,7 +6,7 @@ local backend. It does not infer pointer gestures or run chess analysis.
 
 ## Lichess Analysis
 
-Verified against the public analysis page on 2026-09-24. The current page keeps
+Verified against the public analysis page on 2026-09-25. The current page keeps
 the live FEN in an `input.copyable` under `.analyse__underboard`. The adapter
 prefers that site-specific path and retains a strictly validated fallback for
 minor markup changes.
@@ -29,16 +29,18 @@ silently lose the board snapshot.
 
 ## Chess.com Analysis
 
-The initial loader exposes a textarea labelled “Paste a PGN, FEN, or study
-link…”, which the adapter can read when it contains a complete FEN. After the
-analysis loads, the engine-lines component exposes the complete live position in
-a `fen` attribute under `#board-layout-analysis`. This was verified on the public
-analysis page on 2026-09-24, including the side to move, castling rights, en
-passant square and move counters after a move.
+The initial loader exposes an input labelled “Paste a PGN, FEN, or study link…”,
+which the adapter can read when it contains a complete FEN. After the analysis
+and engine panel load asynchronously, the
+`.engine-lines-engine-lines-redesign` component exposes the complete live
+position in a `fen` attribute. This was verified on the public analysis page on
+2026-09-25 by playing `1.e4`: the resulting value included Black to move,
+castling rights, `e3` as the en passant target, and both move counters.
 
 The adapter reads that attribute directly and validates the complete value. It
 does not rebuild the position from piece CSS classes, screen coordinates or
-pointer movement.
+pointer movement. The `fen` value stays independent from board orientation; the
+fixture includes the separate `boardisflipped` attribute to guard that boundary.
 
 ## Tests and maintenance
 

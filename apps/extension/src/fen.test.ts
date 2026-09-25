@@ -47,8 +47,9 @@ describe("findFen", () => {
 
   it("reads a FEN pasted into the Chess.com analysis loader", () => {
     document.body.innerHTML = `
-      <textarea placeholder="Paste a PGN, FEN, or study link…"></textarea>`;
-    document.querySelector<HTMLTextAreaElement>("textarea")!.value = STARTING_FEN;
+      <input aria-label="Paste a PGN, FEN, or study link…"
+             placeholder="Paste a PGN, FEN, or study link…">`;
+    document.querySelector<HTMLInputElement>("input")!.value = STARTING_FEN;
 
     expect(findFen(document, "www.chess.com")).toBe(STARTING_FEN);
   });
@@ -56,9 +57,9 @@ describe("findFen", () => {
   it("reads the live Chess.com engine-panel FEN after analysis loads", () => {
     const afterE4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
     document.body.innerHTML = `
-      <div id="board-layout-analysis">
-        <div class="engine-lines-engine-lines-redesign" fen="${afterE4}"></div>
-      </div>`;
+      <div id="board-layout-analysis"></div>
+      <div class="engine-lines-engine-lines-redesign engine-lines-with-options-lines"
+           boardisflipped="true" fen="${afterE4}" selectedply="1"></div>`;
 
     expect(findFen(document, "www.chess.com")).toBe(afterE4);
   });

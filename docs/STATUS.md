@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **90%**;
-- portfolio-ready release: **71%**;
-- full intended product: **72%**.
+- local analysis core: **91%**;
+- portfolio-ready release: **74%**;
+- full intended product: **74%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -35,7 +35,12 @@ unpacked.
   plus latest-position queuing and replay after reconnect;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
   order enforcement (`google/gemini-3.8-flash`);
-- current Lichess Analysis and Chess.com Analysis FEN extraction;
+- live 2026-09-25 Lichess and Chess.com Analysis FEN extraction, including an
+  `1.e4` update with full turn, castling, en passant and move-counter state;
+- live local renderer verification of native Stockfish analysis, runtime Elo
+  update, persistence after reload and deterministic history restoration;
+- React UI regression coverage for persisted profiles and history restoration,
+  plus extension popup validation and delivery states;
 - TypeScript contracts, structured redacted logs and engineering documentation;
 - local Ruff, Pytest, Vitest, typecheck and production builds;
 - GitHub Actions checks for every push to `main` and every pull request.
@@ -52,7 +57,8 @@ unpacked.
    relative pins, weak squares, outposts and more specialized endgame concepts.
 5. Package the desktop, backend and licensed Stockfish distribution into a
    repeatable Windows installation and test it on a clean machine.
-6. Add UI-level regression tests and a short portfolio demo flow.
+6. Expand UI-level regression coverage beyond profiles/history and add a short
+   portfolio demo flow.
 
 Maia-3 is outside the critical path. It remains optional and can never change
 Stockfish candidates, evaluation, rank or post-move classification.
