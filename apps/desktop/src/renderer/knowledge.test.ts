@@ -55,6 +55,7 @@ describe("knowledge health metrics", () => {
       pawn_island_count: 1,
       connected_squares: ["d4", "e4"],
       connected_passed_squares: [],
+      backward_squares: [],
     })).toEqual({ label: "Coesa", score: 100 });
   });
 });

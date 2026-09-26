@@ -135,12 +135,23 @@ def _position_supports(evidence: AnalysisEvidenceResponse) -> list[dict[str, str
         pawn_parts.append(
             "peões isolados pretos em " + ", ".join(position.black_pawns.isolated_squares)
         )
+    if position.white_pawns.backward_squares:
+        pawn_parts.append(
+            "peões atrasados brancos em " + ", ".join(position.white_pawns.backward_squares)
+        )
+    if position.black_pawns.backward_squares:
+        pawn_parts.append(
+            "peões atrasados pretos em " + ", ".join(position.black_pawns.backward_squares)
+        )
     if pawn_parts:
         statements.append("Estrutura de peões: " + "; ".join(pawn_parts) + ".")
 
     files = position.strategic.files
     if files.open_files:
         statements.append("Colunas abertas: " + ", ".join(files.open_files) + ".")
+    overloaded = tactics.white_overloaded + tactics.black_overloaded
+    if overloaded:
+        statements.append("Peças sobrecarregadas verificadas: " + ", ".join(overloaded) + ".")
     if position.white_king.enemy_attackers or position.black_king.enemy_attackers:
         statements.append(
             "Atacantes geométricos nas zonas dos reis: "
@@ -157,6 +168,14 @@ def _position_supports(evidence: AnalysisEvidenceResponse) -> list[dict[str, str
             endgame_types.append("bispos de cores opostas")
         if position.endgame.same_colored_bishop_endgame:
             endgame_types.append("bispos da mesma cor")
+        if position.endgame.queen_endgame:
+            endgame_types.append("damas")
+        if position.endgame.minor_piece_endgame:
+            endgame_types.append("peças menores")
+        if position.endgame.rook_and_minor_endgame:
+            endgame_types.append("torres e peças menores")
+        if position.endgame.wrong_bishop_rook_pawn_side:
+            endgame_types.append("bispo errado e peão de torre")
         statements.append(
             "O detector marcou um final"
             + (" de " + ", ".join(endgame_types) if endgame_types else "")

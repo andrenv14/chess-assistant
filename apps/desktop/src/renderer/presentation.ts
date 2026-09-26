@@ -123,6 +123,18 @@ export function formatPositionThemes(position: PositionFeaturesResponse): string
       `Passados conectados pretos: ${formatSquares(position.black_pawns.connected_passed_squares)}`,
     );
   }
+  if (position.white_pawns.backward_squares.length) {
+    themes.push(`Peões atrasados brancos: ${formatSquares(position.white_pawns.backward_squares)}`);
+  }
+  if (position.black_pawns.backward_squares.length) {
+    themes.push(`Peões atrasados pretos: ${formatSquares(position.black_pawns.backward_squares)}`);
+  }
+  if (position.strategic.white_pawn_color_complex !== "balanced") {
+    themes.push(`Peões brancos em casas ${position.strategic.white_pawn_color_complex === "light" ? "claras" : "escuras"}`);
+  }
+  if (position.strategic.black_pawn_color_complex !== "balanced") {
+    themes.push(`Peões pretos em casas ${position.strategic.black_pawn_color_complex === "light" ? "claras" : "escuras"}`);
+  }
 
   if (position.endgame.king_and_pawn_endgame) themes.push("Final de reis e peões");
   if (position.endgame.pure_rook_endgame) themes.push("Final puro de torres");
@@ -136,6 +148,18 @@ export function formatPositionThemes(position: PositionFeaturesResponse): string
     themes.push(
       `Oposição direta: ${position.endgame.direct_opposition_holder === "white" ? "brancas" : "pretas"}`,
     );
+  }
+  if (position.endgame.queen_endgame) themes.push("Final puro de damas");
+  if (position.endgame.minor_piece_endgame) themes.push("Final de peças menores");
+  if (position.endgame.rook_and_minor_endgame) themes.push("Final de torres e peças menores");
+  if (position.endgame.wrong_bishop_rook_pawn_side) {
+    themes.push(`Bispo errado e peão de torre: ${position.endgame.wrong_bishop_rook_pawn_side === "white" ? "brancas" : "pretas"}`);
+  }
+  if (position.tactics.white_overloaded.length) {
+    themes.push(`Peças brancas sobrecarregadas: ${formatSquares(position.tactics.white_overloaded)}`);
+  }
+  if (position.tactics.black_overloaded.length) {
+    themes.push(`Peças pretas sobrecarregadas: ${formatSquares(position.tactics.black_overloaded)}`);
   }
 
   if (position.white_king.enemy_attackers.length >= 2) {

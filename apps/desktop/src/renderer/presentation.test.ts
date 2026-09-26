@@ -25,6 +25,7 @@ const POSITION_FEATURES: PositionFeaturesResponse = {
     pawn_island_count: 1,
     connected_squares: [],
     connected_passed_squares: [],
+    backward_squares: [],
   },
   black_pawns: {
     doubled_files: [],
@@ -33,6 +34,7 @@ const POSITION_FEATURES: PositionFeaturesResponse = {
     pawn_island_count: 1,
     connected_squares: [],
     connected_passed_squares: [],
+    backward_squares: [],
   },
   white_king: {
     king_square: "a1",
@@ -73,6 +75,8 @@ const POSITION_FEATURES: PositionFeaturesResponse = {
     black_bad_bishops: [],
     white_pawn_majority_wings: [],
     black_pawn_majority_wings: [],
+    white_pawn_color_complex: "balanced",
+    black_pawn_color_complex: "balanced",
   },
   endgame: {
     active: true,
@@ -81,6 +85,10 @@ const POSITION_FEATURES: PositionFeaturesResponse = {
     opposite_colored_bishop_endgame: false,
     same_colored_bishop_endgame: false,
     direct_opposition_holder: null,
+    queen_endgame: false,
+    minor_piece_endgame: false,
+    rook_and_minor_endgame: false,
+    wrong_bishop_rook_pawn_side: null,
   },
   tactics: {
     side_to_move_in_check: false,
@@ -92,6 +100,8 @@ const POSITION_FEATURES: PositionFeaturesResponse = {
     black_pinned: [],
     white_undefended_attacked: [],
     black_undefended_attacked: [],
+    white_overloaded: [],
+    black_overloaded: [],
   },
 };
 

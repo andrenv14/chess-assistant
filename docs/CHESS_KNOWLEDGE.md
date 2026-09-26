@@ -9,8 +9,9 @@ explain *why* a candidate works without inventing a story from an engine score.
 The deterministic extractor currently reports:
 
 - material balance and game phase;
-- doubled, isolated, connected and passed pawns, including connected passers;
+- doubled, isolated, backward, connected and passed pawns, including connected passers;
 - pawn islands and wing majorities;
+- dominant light/dark pawn color complexes;
 - open and semi-open files;
 - bishop pair and restricted bad bishops;
 - pawn-supported outposts and occupied knight outposts;
@@ -18,9 +19,12 @@ The deterministic extractor currently reports:
 - safe pawn-controlled space in the opponent half;
 - rooks on open/semi-open files and on the seventh rank;
 - king pawn shield, open king files and enemy pressure in the king zone;
-- strict king-and-pawn, rook and same/opposite-colored bishop endgames;
+- strict king-and-pawn, rook, queen, minor-piece, rook-and-minor and
+  same/opposite-colored bishop endgames;
+- the strict wrong-bishop-and-rook-pawn fortress motif;
 - direct opposition;
-- checks, mate in one, absolute pins and attacked undefended pieces.
+- checks, mate in one, absolute pins, attacked undefended pieces and pieces
+  overloaded as the sole defender of two attacked assets.
 
 ## Candidate-move concepts
 

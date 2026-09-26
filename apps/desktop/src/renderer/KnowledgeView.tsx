@@ -188,6 +188,7 @@ export function KnowledgeView({
                 <article className="panel knowledge-stat"><span>#</span><b>{position.tactics.mate_in_one_moves.length}</b><small>mates em um</small></article>
                 <article className="panel knowledge-stat"><span>×</span><b>{position.tactics.capture_count}</b><small>capturas legais</small></article>
                 <article className="panel knowledge-stat"><span>!</span><b>{position.tactics.white_undefended_attacked.length + position.tactics.black_undefended_attacked.length}</b><small>peças soltas sob ataque</small></article>
+                <article className="panel knowledge-stat"><span>⇄</span><b>{position.tactics.white_overloaded.length + position.tactics.black_overloaded.length}</b><small>peças sobrecarregadas</small></article>
               </div>
               <article className="panel knowledge-card">
                 <p className="eyebrow">LANCES FORÇANTES</p><h3>Xeques e mates verificados</h3>
@@ -234,6 +235,10 @@ export function KnowledgeView({
                     position.strategic.black_bishop_pair ? "Pretas conservam o par de bispos" : "",
                     squares("Bispos brancos restringidos", position.strategic.white_bad_bishops) ?? "",
                     squares("Bispos pretos restringidos", position.strategic.black_bad_bishops) ?? "",
+                    squares("Peões brancos atrasados", position.white_pawns.backward_squares) ?? "",
+                    squares("Peões pretos atrasados", position.black_pawns.backward_squares) ?? "",
+                    position.strategic.white_pawn_color_complex !== "balanced" ? `Peões brancos em casas ${position.strategic.white_pawn_color_complex === "light" ? "claras" : "escuras"}` : "",
+                    position.strategic.black_pawn_color_complex !== "balanced" ? `Peões pretos em casas ${position.strategic.black_pawn_color_complex === "light" ? "claras" : "escuras"}` : "",
                   ].filter(Boolean)} empty="Sem desequilíbrio claro de peças menores." />
                 </article>
                 <article className="panel knowledge-card">
@@ -267,6 +272,10 @@ export function KnowledgeView({
                   position.endgame.pure_rook_endgame ? "Final puro de torres" : "",
                   position.endgame.opposite_colored_bishop_endgame ? "Bispos de cores opostas" : "",
                   position.endgame.same_colored_bishop_endgame ? "Bispos da mesma cor" : "",
+                  position.endgame.queen_endgame ? "Final puro de damas" : "",
+                  position.endgame.minor_piece_endgame ? "Final de peças menores" : "",
+                  position.endgame.rook_and_minor_endgame ? "Final de torres e peças menores" : "",
+                  position.endgame.wrong_bishop_rook_pawn_side ? `Bispo errado e peão de torre: ${sideName(position.endgame.wrong_bishop_rook_pawn_side)}` : "",
                 ].filter(Boolean)} empty="Nenhuma categoria teórica estrita foi identificada." />
               </article>
             </>

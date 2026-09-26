@@ -108,6 +108,7 @@ def _pawn_features(board: chess.Board, color: chess.Color) -> PawnFeatures:
     isolated: list[str] = []
     passed: list[str] = []
     connected: list[str] = []
+    backward: list[str] = []
 
     enemy_pawns = board.pieces(chess.PAWN, not color)
     for square in pawns:
@@ -132,6 +133,31 @@ def _pawn_features(board: chess.Board, color: chess.Color) -> PawnFeatures:
         if not (enemy_pawns & blocking_squares):
             passed.append(chess.square_name(square))
 
+        forward_rank = rank + (1 if color == chess.WHITE else -1)
+        if 0 <= forward_rank < 8 and adjacent_files:
+            advance_square = chess.square(file_index, forward_rank)
+            adjacent_ahead = any(
+                (
+                    chess.square_rank(other) > rank
+                    if color == chess.WHITE
+                    else chess.square_rank(other) < rank
+                )
+                for adjacent_file in adjacent_files
+                for other in pawns & chess.BB_FILES[adjacent_file]
+            )
+            enemy_pawn_controls_advance = bool(
+                board.attackers(not color, advance_square) & enemy_pawns
+            )
+            friendly_pawn_controls_advance = bool(
+                board.attackers(color, advance_square) & pawns
+            )
+            if (
+                adjacent_ahead
+                and enemy_pawn_controls_advance
+                and not friendly_pawn_controls_advance
+            ):
+                backward.append(chess.square_name(square))
+
     passed_set = set(passed)
     connected_set = set(connected)
     pawn_island_count = sum(
@@ -145,6 +171,7 @@ def _pawn_features(board: chess.Board, color: chess.Color) -> PawnFeatures:
         pawn_island_count=pawn_island_count,
         connected_squares=sorted(connected),
         connected_passed_squares=sorted(passed_set & connected_set),
+        backward_squares=sorted(backward),
     )
 
 
@@ -235,6 +262,8 @@ def _strategic_features(board: chess.Board) -> StrategicFeatures:
         black_bad_bishops=_bad_bishops(board, chess.BLACK),
         white_pawn_majority_wings=_pawn_majority_wings(board, chess.WHITE),
         black_pawn_majority_wings=_pawn_majority_wings(board, chess.BLACK),
+        white_pawn_color_complex=_pawn_color_complex(board, chess.WHITE),
+        black_pawn_color_complex=_pawn_color_complex(board, chess.BLACK),
     )
 
 
@@ -351,6 +380,20 @@ def _pawn_majority_wings(board: chess.Board, color: chess.Color) -> list[str]:
     ]
 
 
+def _pawn_color_complex(
+    board: chess.Board,
+    color: chess.Color,
+) -> str:
+    pawns = board.pieces(chess.PAWN, color)
+    light = sum(_is_light_square(square) for square in pawns)
+    dark = len(pawns) - light
+    if light - dark >= 2:
+        return "light"
+    if dark - light >= 2:
+        return "dark"
+    return "balanced"
+
+
 def _endgame_features(board: chess.Board, active: bool) -> EndgameFeatures:
     counts = {
         (color, piece_type): len(board.pieces(piece_type, color))
@@ -383,6 +426,32 @@ def _endgame_features(board: chess.Board, active: bool) -> EndgameFeatures:
     if active and facing:
         opposition_holder = "black" if board.turn == chess.WHITE else "white"
 
+    queen_endgame = (
+        active
+        and no_rooks
+        and no_knights
+        and no_bishops
+        and all(counts[color, chess.QUEEN] == 1 for color in chess.COLORS)
+    )
+    minor_piece_endgame = (
+        active
+        and no_queens
+        and no_rooks
+        and any(
+            counts[color, chess.KNIGHT] + counts[color, chess.BISHOP] > 0
+            for color in chess.COLORS
+        )
+    )
+    rook_and_minor_endgame = (
+        active
+        and no_queens
+        and all(counts[color, chess.ROOK] >= 1 for color in chess.COLORS)
+        and any(
+            counts[color, chess.KNIGHT] + counts[color, chess.BISHOP] > 0
+            for color in chess.COLORS
+        )
+    )
+
     return EndgameFeatures(
         active=active,
         king_and_pawn_endgame=(
@@ -398,7 +467,44 @@ def _endgame_features(board: chess.Board, active: bool) -> EndgameFeatures:
         opposite_colored_bishop_endgame=opposite_colored,
         same_colored_bishop_endgame=same_colored,
         direct_opposition_holder=opposition_holder,
+        queen_endgame=queen_endgame,
+        minor_piece_endgame=minor_piece_endgame,
+        rook_and_minor_endgame=rook_and_minor_endgame,
+        wrong_bishop_rook_pawn_side=_wrong_bishop_rook_pawn_side(board, active),
     )
+
+
+def _wrong_bishop_rook_pawn_side(
+    board: chess.Board,
+    active: bool,
+) -> str | None:
+    """Recognize the strict lone rook-pawn plus wrong bishop fortress motif."""
+    if not active:
+        return None
+    for color, name in ((chess.WHITE, "white"), (chess.BLACK, "black")):
+        own_pawns = board.pieces(chess.PAWN, color)
+        own_bishops = board.pieces(chess.BISHOP, color)
+        own_other = sum(
+            len(board.pieces(piece_type, color))
+            for piece_type in (chess.KNIGHT, chess.ROOK, chess.QUEEN)
+        )
+        enemy_material = sum(
+            len(board.pieces(piece_type, not color))
+            for piece_type in (chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN)
+        )
+        if len(own_pawns) != 1 or len(own_bishops) != 1 or own_other or enemy_material:
+            continue
+        pawn_square = next(iter(own_pawns))
+        if chess.square_file(pawn_square) not in (0, 7):
+            continue
+        promotion_square = chess.square(
+            chess.square_file(pawn_square),
+            7 if color == chess.WHITE else 0,
+        )
+        bishop_square = next(iter(own_bishops))
+        if _is_light_square(bishop_square) != _is_light_square(promotion_square):
+            return name
+    return None
 
 
 def _is_light_square(square: chess.Square) -> bool:
@@ -443,4 +549,30 @@ def _tactical_features(board: chess.Board) -> TacticalFeatures:
         black_pinned=_pinned_pieces(board, chess.BLACK),
         white_undefended_attacked=_undefended_attacked(board, chess.WHITE),
         black_undefended_attacked=_undefended_attacked(board, chess.BLACK),
+        white_overloaded=_overloaded_pieces(board, chess.WHITE),
+        black_overloaded=_overloaded_pieces(board, chess.BLACK),
+    )
+
+
+def _overloaded_pieces(board: chess.Board, color: chess.Color) -> list[str]:
+    """Pieces that are the sole defender of two attacked, non-pawn assets."""
+    responsibilities: dict[chess.Square, int] = {}
+    for target in chess.SquareSet(board.occupied_co[color]):
+        target_piece = board.piece_at(target)
+        if target_piece is None or target_piece.piece_type in (chess.PAWN, chess.KING):
+            continue
+        if not board.attackers(not color, target):
+            continue
+        defenders = [
+            square
+            for square in board.attackers(color, target)
+            if board.piece_type_at(square) != chess.KING
+        ]
+        if len(defenders) == 1:
+            defender = defenders[0]
+            responsibilities[defender] = responsibilities.get(defender, 0) + 1
+    return sorted(
+        chess.square_name(square)
+        for square, count in responsibilities.items()
+        if count >= 2
     )

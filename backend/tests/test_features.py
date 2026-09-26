@@ -45,6 +45,18 @@ def test_detects_pawn_islands_and_connected_passers() -> None:
     assert features.white_pawns.connected_passed_squares == ["a2", "b3", "d4", "e4"]
 
 
+def test_detects_a_strict_backward_pawn() -> None:
+    features = extract_position_features("4k3/8/8/4p3/4P3/3P4/8/4K3 w - - 0 1")
+
+    assert features.white_pawns.backward_squares == ["d3"]
+
+
+def test_reports_the_dominant_pawn_color_complex() -> None:
+    features = extract_position_features("4k3/8/8/8/2P1P3/3P4/2P5/4K3 w - - 0 1")
+
+    assert features.strategic.white_pawn_color_complex == "light"
+
+
 def test_detects_open_and_semi_open_files() -> None:
     features = extract_position_features("4k3/2pp4/8/8/8/8/P1P5/4K3 w - - 0 1")
 
@@ -106,6 +118,22 @@ def test_direct_opposition_belongs_to_the_side_not_to_move() -> None:
     assert black_to_move.endgame.direct_opposition_holder == "white"
 
 
+def test_identifies_specialized_endgames() -> None:
+    queen = extract_position_features("3qk3/8/8/8/8/8/8/3QK3 w - - 0 1")
+    minor = extract_position_features("4kb2/8/8/8/8/8/8/2B1K3 w - - 0 1")
+    mixed = extract_position_features("r3kb2/8/8/8/8/8/8/RN2K3 w - - 0 1")
+
+    assert queen.endgame.queen_endgame is True
+    assert minor.endgame.minor_piece_endgame is True
+    assert mixed.endgame.rook_and_minor_endgame is True
+
+
+def test_identifies_wrong_bishop_rook_pawn_motif() -> None:
+    features = extract_position_features("7k/P7/8/8/8/8/8/2B1K3 w - - 0 1")
+
+    assert features.endgame.wrong_bishop_rook_pawn_side == "white"
+
+
 def test_reports_checking_moves_as_uci_facts() -> None:
     features = extract_position_features("4k3/8/8/8/8/8/4R3/4K3 w - - 0 1")
 
@@ -117,6 +145,12 @@ def test_reports_absolute_pins() -> None:
 
     assert features.tactics.black_pinned == ["c6"]
     assert features.tactics.white_pinned == []
+
+
+def test_reports_a_piece_overloaded_by_two_attacked_assets() -> None:
+    features = extract_position_features("r2r2k1/8/8/8/B7/8/3R4/3Q2K1 w - - 0 1")
+
+    assert features.tactics.white_overloaded == ["d1"]
 
 
 def test_does_not_call_a_relative_queen_alignment_an_absolute_pin() -> None:

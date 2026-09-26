@@ -129,3 +129,8 @@ $env:STOCKFISH_PATH = "C:\caminho\para\stockfish.exe"
 cd backend
 .venv\Scripts\python.exe -m pytest tests/test_classification_corpus.py
 ```
+
+The pinned corpus also accepts direct FEN fixtures for artificial edge cases
+that are clearer than a long invented game. It currently includes a unique
+defensive check that alone avoids mate and a missed mate-in-one that deliberately
+sacrifices into a draw, in addition to the four historical sacrifice controls.

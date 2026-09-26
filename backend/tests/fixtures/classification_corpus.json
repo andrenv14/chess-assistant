@@ -145,6 +145,36 @@
         "expected_points_after_min": 0.99,
         "second_best_expected_points_min": 0.9
       }
+    },
+    {
+      "id": "only-defensive-check-holds-the-position",
+      "description": "Black must find 1...Ra6+; the next engine choice permits immediate mate.",
+      "source": "synthetic-regression-position",
+      "before_fen": "r6k/8/5KQ1/8/8/8/8/8 b - - 0 1",
+      "played_san": "Ra6+",
+      "expected": {
+        "classification": "great",
+        "rule": "unique_best_move",
+        "sacrifice_detected": false,
+        "played_is_engine_best": true,
+        "expected_points_after_min": 0.45,
+        "expected_points_after_max": 0.58
+      }
+    },
+    {
+      "id": "mate-in-one-sacrificed-into-a-draw",
+      "description": "White misses Qg7# and plays Qh7+, allowing the queen to be taken and the game to draw.",
+      "source": "synthetic-regression-position",
+      "before_fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1",
+      "played_san": "Qh7+",
+      "expected": {
+        "classification": "miss",
+        "rule": "missed_forcing_opportunity",
+        "sacrifice_detected": true,
+        "played_is_engine_best": false,
+        "expected_points_after_min": 0.45,
+        "expected_points_after_max": 0.55
+      }
     }
   ]
 }

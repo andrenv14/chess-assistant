@@ -181,6 +181,7 @@ export interface PawnFeatures {
   pawn_island_count: number;
   connected_squares: string[];
   connected_passed_squares: string[];
+  backward_squares: string[];
 }
 
 export interface KingSafetyFeatures {
@@ -221,6 +222,8 @@ export interface StrategicFeatures {
   black_bad_bishops: string[];
   white_pawn_majority_wings: Array<"queenside" | "kingside">;
   black_pawn_majority_wings: Array<"queenside" | "kingside">;
+  white_pawn_color_complex: "light" | "dark" | "balanced";
+  black_pawn_color_complex: "light" | "dark" | "balanced";
 }
 
 export interface EndgameFeatures {
@@ -230,6 +233,10 @@ export interface EndgameFeatures {
   opposite_colored_bishop_endgame: boolean;
   same_colored_bishop_endgame: boolean;
   direct_opposition_holder: "white" | "black" | null;
+  queen_endgame: boolean;
+  minor_piece_endgame: boolean;
+  rook_and_minor_endgame: boolean;
+  wrong_bishop_rook_pawn_side: "white" | "black" | null;
 }
 
 export interface PositionFeaturesRequest {
@@ -261,6 +268,8 @@ export interface PositionFeaturesResponse {
     black_pinned: string[];
     white_undefended_attacked: string[];
     black_undefended_attacked: string[];
+    white_overloaded: string[];
+    black_overloaded: string[];
   };
 }
 

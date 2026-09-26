@@ -239,6 +239,7 @@ class PawnFeatures(BaseModel):
     pawn_island_count: int
     connected_squares: list[str]
     connected_passed_squares: list[str]
+    backward_squares: list[str] = Field(default_factory=list)
 
 
 class KingSafetyFeatures(BaseModel):
@@ -283,6 +284,8 @@ class StrategicFeatures(BaseModel):
     black_pawn_majority_wings: list[Literal["queenside", "kingside"]] = Field(
         default_factory=list
     )
+    white_pawn_color_complex: Literal["light", "dark", "balanced"] = "balanced"
+    black_pawn_color_complex: Literal["light", "dark", "balanced"] = "balanced"
 
 
 class EndgameFeatures(BaseModel):
@@ -292,6 +295,10 @@ class EndgameFeatures(BaseModel):
     opposite_colored_bishop_endgame: bool
     same_colored_bishop_endgame: bool
     direct_opposition_holder: Literal["white", "black"] | None
+    queen_endgame: bool = False
+    minor_piece_endgame: bool = False
+    rook_and_minor_endgame: bool = False
+    wrong_bishop_rook_pawn_side: Literal["white", "black"] | None = None
 
 
 class TacticalFeatures(BaseModel):
@@ -304,6 +311,8 @@ class TacticalFeatures(BaseModel):
     black_pinned: list[str]
     white_undefended_attacked: list[str]
     black_undefended_attacked: list[str]
+    white_overloaded: list[str] = Field(default_factory=list)
+    black_overloaded: list[str] = Field(default_factory=list)
 
 
 class PositionFeaturesResponse(BaseModel):

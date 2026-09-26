@@ -40,8 +40,8 @@ def evaluator_profile() -> EngineSettings:
 
 
 def replay_case(case: dict[str, Any]) -> tuple[str, str]:
-    board = chess.Board()
-    for san in case["moves_before"]:
+    board = chess.Board(case["before_fen"]) if "before_fen" in case else chess.Board()
+    for san in case.get("moves_before", []):
         board.push_san(san)
     before_fen = board.fen()
     board.push_san(case["played_san"])
