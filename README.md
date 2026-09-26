@@ -1,219 +1,233 @@
-# Chess Assistant
+<p align="center">
+  <img src="apps/desktop/build/icon.svg" width="88" alt="Ícone do Chess Assistant">
+</p>
 
-[![CI](https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml)
+<h1 align="center">Chess Assistant</h1>
 
-Assistente local de xadrez para posições de análise e partidas lidas ao vivo no
-Chess.com e Lichess. O projeto separa a leitura do
-tabuleiro, a interface desktop e os motores nativos para que cada parte possa evoluir
-sem depender das demais.
+<p align="center">
+  Assistente desktop de análise enxadrística com Stockfish nativo, leitura do<br>
+  Chess.com e Lichess e explicações fundamentadas em evidências do tabuleiro.
+</p>
+
+<p align="center">
+  <a href="https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml">
+    <img src="https://github.com/andrenv14/chess-assistant/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+</p>
+
+<p align="center">
+  <a href="#produto">Produto</a> ·
+  <a href="#arquitetura">Arquitetura</a> ·
+  <a href="#engenharia">Engenharia</a> ·
+  <a href="#executar-localmente">Executar</a> ·
+  <a href="docs/PORTFOLIO.md">Case de portfólio</a>
+</p>
 
 ![Demonstração do Chess Assistant](docs/assets/portfolio/chess-assistant-demo.gif)
 
-## Escopo concluído
+## O projeto
 
-- app desktop em Electron + React com FEN, evalbar, variantes e respostas;
-- exploração interativa das variantes no tabuleiro, lance a lance;
-- navegação em páginas React: cockpit de análise e centro de conhecimento com
-  visões próprias para panorama, tática, estratégia e finais;
-- indicadores comparativos de desenvolvimento, segurança do rei e estrutura
-  de peões, sempre separados da avaliação oficial do Stockfish;
-- backend FastAPI com Stockfish nativo;
-- perfis independentes `user`, `opponent` e `evaluator`;
-- alteração de Elo/Skill/tempo de análise sem reiniciar o app;
-- extensão Manifest V3 que transmite snapshots FEN de análise e partidas ao vivo ao `localhost`;
-- reconstrução e classificação do lance efetivamente jogado;
-- classificação auditável de brilhante, ótimo e oportunidade perdida com
-  evidência determinística do Stockfish e do tabuleiro;
-- catálogo local CC0 do Lichess com identificação automática de abertura;
-- evidências determinísticas de posição e de cada candidato do Stockfish;
-- explicações estruturadas e validadas via OpenRouter/OpenResponses, ancoradas
-  em evidências do Stockfish e do analisador determinístico;
-- perfis e histórico recente persistidos localmente em SQLite.
-- repertório especializado em London, Siciliana Kan/Taimanov e Índia do Rei,
-  com planos, contrajogo, temas táticos, armadilhas e linhas-modelo locais;
-- análise progressiva: candidatos e conhecimento aparecem primeiro; a defesa
-  da linha selecionada usa o perfil independente do oponente e a barra recebe
-  depois a avaliação objetiva, sem bloquear a interface nem a prosa da LLM.
+O Chess Assistant conecta uma extensão leve do navegador a um aplicativo local.
+A extensão lê a posição e a orientação do tabuleiro; o desktop concentra a
+análise, a navegação das variantes e o conhecimento enxadrístico. Todo o cálculo
+principal permanece no computador do usuário.
+
+A arquitetura separa responsabilidades de forma explícita: **Stockfish decide
+e avalia**, regras determinísticas descrevem o que existe no tabuleiro e a LLM,
+quando configurada, apenas transforma essas evidências em texto natural. Uma
+resposta bem escrita nunca pode alterar o ranking dos lances ou inventar uma
+linha que o motor não calculou.
+
+## Produto
+
+O cockpit reúne as três informações necessárias para analisar uma posição sem
+trocar de contexto:
+
+- tabuleiro, orientação automática e barra de avaliação;
+- melhores lances, centipawns, variantes navegáveis e defesa crítica;
+- abertura, temas táticos, estrutura, segurança dos reis e planos estratégicos.
+
+O Centro de Conhecimento abre visões próprias para panorama, tática, estratégia
+e finais. A interface também classifica o lance depois que ele é jogado e
+mantém histórico, perfis de força e preferências em SQLite local.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/portfolio/03-tactics-100.png" alt="Visão de tática">
+      <br><sub><strong>Tática.</strong> Motivos concretos, alvos e linhas forçadas.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/assets/portfolio/04-strategy-100.png" alt="Visão de estratégia">
+      <br><sub><strong>Estratégia.</strong> Planos dos dois lados e repertório especializado.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <img src="docs/assets/portfolio/05-endgame-100.png" alt="Visão de finais">
+      <br><sub><strong>Finais.</strong> Tipo de final, peões passados, oposição e atividade das peças.</sub>
+    </td>
+  </tr>
+</table>
+
+### Funcionalidades principais
+
+| Área | Entrega |
+|---|---|
+| Análise | MultiPV, eval bar, SAN/UCI, centipawns, mate, linhas e respostas do oponente |
+| Motores | Perfis independentes para o assistente, o oponente e o avaliador objetivo |
+| Partida | Leitura ao vivo, orientação, reconstrução de FEN e classificação pós-lance |
+| Conhecimento | Aberturas, tática, estratégia, estrutura de peões, segurança do rei e finais |
+| Repertório | Sistema London, Siciliana Kan/Taimanov e Índia do Rei, para os dois lados |
+| Explicações | Saída estruturada via OpenRouter, validada contra lances e evidências reais |
+| Persistência | Perfis e histórico recente em SQLite, sem armazenar credenciais |
 
 ## Arquitetura
 
-```text
-apps/extension  ──WebSocket──▶  backend/  ◀──HTTP/WebSocket──  apps/desktop
-                                      │
-                                      ├── Stockfish: user
-                                      ├── Stockfish: opponent
-                                      └── Stockfish: evaluator (opcional)
-
-packages/contracts: mensagens compartilhadas entre TypeScript e a API
+```mermaid
+flowchart LR
+    Sites[Chess.com / Lichess] --> Extension[Extensão MV3<br/>TypeScript]
+    Extension -->|FEN + orientação<br/>WebSocket local| Backend[FastAPI + python-chess<br/>SQLite]
+    Backend <--> Desktop[Electron + React<br/>TypeScript]
+    Backend --> Engines[3 processos<br/>Stockfish 19]
+    Backend --> Knowledge[Aberturas + regras<br/>repertório]
+    Backend -.->|opcional| LLM[OpenRouter<br/>Structured Outputs]
 ```
 
-## Pré-requisitos
+Cada função do motor possui processo e fila próprios. O assistente pode retornar
+candidatos enquanto o avaliador classifica o lance anterior; a defesa da linha
+selecionada é calculada pelo perfil configurado para o outro lado. A interface
+recebe os resultados progressivamente, evitando que uma tarefa lenta bloqueie
+todo o cockpit.
 
+## Engenharia
+
+### Decisões que orientam o projeto
+
+- **Autoridade separada:** avaliação e ordem dos lances sempre pertencem ao
+  Stockfish; a LLM não funciona como motor.
+- **Evidência antes de prosa:** temas como cravada, ataque descoberto, atração e
+  desvio carregam alvos verificáveis e testes negativos contra falsos positivos.
+- **Força configurável por papel:** assistente e oponente podem usar Elo, Skill,
+  tempo ou profundidade diferentes durante a mesma sessão.
+- **Processamento local:** navegador, backend e desktop conversam apenas por
+  loopback; nenhuma posição depende de um servidor próprio do projeto.
+- **Entrega reproduzível:** o pipeline constrói o backend autocontido, gera o
+  instalador, instala, analisa com Stockfish, verifica a extensão e desinstala
+  em um Windows limpo.
+
+### Números verificados
+
+| Indicador | Resultado |
+|---|---:|
+| Candidatos com o processo aquecido | 504 ms |
+| Candidatos durante classificação paralela | 505 ms |
+| Posições no catálogo local de aberturas | 3.815 |
+| Testes automatizados | 216 |
+| Casos reais da regressão paga de explicações | 4/4 |
+
+As medições foram feitas no host de desenvolvimento com perfis de 500 ms e são
+apresentadas como observações, não como promessa para qualquer hardware. O
+procedimento está em [`scripts/benchmark-engine.py`](scripts/benchmark-engine.py).
+
+### Stack
+
+| Camada | Tecnologias |
+|---|---|
+| Desktop | React 19, TypeScript, Vite, Electron |
+| Extensão | TypeScript, Manifest V3, chess.js, WebSocket |
+| Backend | Python, FastAPI, Pydantic, python-chess, SQLite |
+| Motor | Stockfish 19 nativo; Maia-3 opcional |
+| Explicações | OpenRouter/OpenResponses com Structured Outputs |
+| Qualidade | Pytest, Vitest, Ruff, GitHub Actions, PyInstaller, NSIS |
+
+## Executar localmente
+
+### Requisitos
+
+- Windows 10 ou 11;
 - Node.js 22 ou superior;
-- Python 3.11 ou superior;
-- executável nativo do Stockfish 17 ou superior.
+- Python 3.11 ou superior.
 
-No Windows, instale a versão oficial, fixada e verificada pelo checksum:
+### Ambiente de desenvolvimento
 
 ```powershell
+git clone https://github.com/andrenv14/chess-assistant.git
+cd chess-assistant
+
+npm ci
+python -m venv backend\.venv
+backend\.venv\Scripts\python.exe -m pip install -e ".\backend[dev,package]"
 .\scripts\install-stockfish.ps1
-```
 
-O backend descobre essa instalação automaticamente. Como alternativa, defina o
-caminho de outro motor copiando `backend/.env.example` para `backend/.env` e
-ajustando `STOCKFISH_PATH`.
-
-As explicações usam uma API externa opcional. O exemplo recomenda
-`google/gemini-3.1-flash-lite` via OpenRouter como opção de baixa latência e
-baixo custo para a saída estruturada deste app. A chave permanece somente no
-arquivo local ignorado pelo Git ou no ambiente do processo.
-
-Maia-3 é opcional e mais pesado. Para instalar seu ambiente isolado sem baixar
-o checkpoint antecipadamente:
-
-```powershell
-.\scripts\install-maia3.ps1
-```
-
-## Instalação
-
-```powershell
-npm install
-
-cd backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
-```
-
-Os testes rápidos não dependem de um motor instalado. Para incluir a integração
-real com o processo nativo:
-
-```powershell
-$env:STOCKFISH_PATH = "C:\caminho\para\stockfish.exe"
-cd backend
-.venv\Scripts\python.exe -m pytest -m integration
-```
-
-## Desenvolvimento
-
-O Electron inicia e encerra o backend local automaticamente. Depois da
-instalação, um único comando abre o ambiente de desenvolvimento completo:
-
-```powershell
 npm run dev:desktop
 ```
 
-Se já existir uma instância saudável em `127.0.0.1:8765`, o desktop a reutiliza
-e não a encerra ao sair. Para usar outro Python ou diretório de backend, defina
-`CHESS_ASSISTANT_PYTHON` ou `CHESS_ASSISTANT_BACKEND_DIR` no ambiente. A porta
-também pode ser isolada com `CHESS_ASSISTANT_PORT`; desktop, backend e renderer
-passam a usar o mesmo valor.
-
-O smoke test abaixo compila o desktop, inicia o backend real, valida saúde,
-persistência temporária e o transporte WebSocket extensão → backend → desktop,
-e então encerra o processo criado:
-
-```powershell
-npm run smoke:desktop-backend
-```
-
-Para gerar a extensão:
+O Electron inicia e encerra o backend automaticamente. Para gerar a extensão:
 
 ```powershell
 npm run build:extension
 ```
 
-Carregue `apps/extension/dist` como extensão descompactada no Chrome/Edge. Ela
-reconhece páginas de análise e partidas ao vivo no Chess.com e Lichess e envia
-somente o estado necessário do tabuleiro ao backend local.
+No Chrome ou Edge, abra a página de extensões, ative o modo de desenvolvedor e
+carregue `apps/extension/dist` como extensão descompactada.
 
-Para criar um diretório Windows instalável sem exigir Python ou Stockfish no
-computador de destino, instale antes o grupo Python `package` e execute:
+### Explicações opcionais
 
-```powershell
-backend\.venv\Scripts\python.exe -m pip install -e ".\backend[package]"
-npm run package:dir
-```
-
-Depois da verificação do diretório, `npm run package:win` gera o instalador
-NSIS. O procedimento completo e o checklist de publicação estão em
-[`docs/PACKAGING.md`](docs/PACKAGING.md).
-
-Verificações reproduzíveis de acabamento:
+O Stockfish e todo o conhecimento determinístico funcionam sem chave de API.
+Para habilitar a prosa da LLM, copie o arquivo de exemplo e configure uma chave
+local do OpenRouter:
 
 ```powershell
-npm run qa:installer       # instala, valida renderer/backend e desinstala
-npm run qa:live-extension  # extensão compilada → WebSocket → backend
-npm run qa:portfolio       # screenshots do Electron e Stockfish reais
-npm run verify:signature   # inspeciona Authenticode do instalador
-backend\.venv\Scripts\python.exe backend\scripts\regression_llm.py --dry-run
+Copy-Item backend\.env.example backend\.env
 ```
 
-A demonstração visual pronta para o portfólio está em
-[`docs/assets/portfolio/chess-assistant-demo.gif`](docs/assets/portfolio/chess-assistant-demo.gif).
-O case completo, com decisões, arquitetura, métricas e limites honestos, está
-em [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md).
+O modelo recomendado no exemplo é `google/gemini-3.1-flash-lite`. O arquivo
+`backend/.env` é ignorado pelo Git e não entra no instalador.
 
-## API local
+### Testes e pacote Windows
 
-- `GET /health` — estado do backend e disponibilidade do Stockfish;
-- `GET /api/settings` — perfis atuais;
-- `PUT /api/settings/{role}` — muda força durante a sessão;
-- `POST /api/analyze` — calcula melhores lances e respostas;
-- `POST /api/evidence` — análise Stockfish enriquecida com planos verificáveis;
-- `POST /api/reply` — calcula a defesa selecionada com o perfil do outro lado;
-- `POST /api/evaluation` — atualiza a barra com o avaliador objetivo em segundo plano;
-- `POST /api/explain` — explicação estruturada via API, quando configurada;
-- `POST /api/explain/evidence` — explica evidências existentes sem recalcular o Stockfish;
-- `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
-- `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
-- `POST /api/human-prediction` — candidatos humanos opcionais via Maia-3;
-- `POST /api/features` — fatos determinísticos da posição para explicações;
-- `GET /api/history` e `GET /api/history/{id}` — histórico local e restauração;
-- `DELETE /api/history` — limpa somente o histórico de análises;
-- `WS /ws/extension` — eventos vindos do navegador;
-- `WS /ws/desktop` — eventos consumidos pelo app.
+```powershell
+npm run typecheck
+npm test
+backend\.venv\Scripts\python.exe -m ruff check backend\app backend\tests backend\scripts
+backend\.venv\Scripts\python.exe -m pytest backend\tests
 
-Exemplo de alteração de força:
-
-```json
-{
-  "limit_strength": true,
-  "elo": 1700,
-  "skill_level": 8,
-  "move_time_ms": 500,
-  "depth": null,
-  "multipv": 3
-}
+npm run package:win
+npm run qa:installer
+npm run qa:live-extension
 ```
 
-## Manutenção e distribuição pública
+O instalador é gerado em `apps/desktop/release`. A versão local é funcional,
+mas permanece sem assinatura Authenticode de um publisher confiável; por isso o
+Windows pode exibir um aviso do SmartScreen.
 
-O escopo local e de portfólio está completo. Os próximos trabalhos são de ciclo
-de vida: acompanhar mudanças futuras no DOM do Chess.com/Lichess e, se houver
-distribuição pública, fornecer um certificado Authenticode confiável ao workflow
-de release já preparado. Maia-3 permanece uma comparação humana opcional e não
-faz parte do caminho crítico do Stockfish.
+## Organização do repositório
 
-## Documentação de engenharia
+```text
+apps/
+  desktop/       interface React e processo Electron
+  extension/     ponte Manifest V3 para Chess.com e Lichess
+backend/         API, motores, conhecimento, persistência e explicações
+packages/
+  contracts/     contratos compartilhados em TypeScript
+scripts/         build, benchmark, QA e empacotamento
+docs/            decisões técnicas, evidências e case de portfólio
+```
 
-- [Estado atual e critérios de prontidão](docs/STATUS.md)
-- [Arquitetura](docs/ARCHITECTURE.md)
-- [Classificação de lances](docs/CLASSIFICATION.md)
-- [Base local de aberturas](docs/OPENINGS.md)
-- [Instalação e testes do Stockfish](docs/STOCKFISH.md)
-- [Integração opcional com Maia-3](docs/MAIA3.md)
-- [Evidências determinísticas da posição](docs/POSITION_FEATURES.md)
-- [Camada de conhecimento enxadrístico](docs/CHESS_KNOWLEDGE.md)
-- [Evidências por candidato para explicações](docs/EXPLANATION_EVIDENCE.md)
-- [Contrato seguro das explicações por LLM](docs/LLM_EXPLANATIONS.md)
-- [Persistência local e histórico](docs/PERSISTENCE.md)
-- [Adaptadores do Lichess e Chess.com](docs/SITE_ADAPTERS.md)
-- [Testes, logs e definição de pronto](docs/ENGINEERING.md)
-- [Empacotamento e instalação Windows](docs/PACKAGING.md)
-- [Repertório especializado](docs/REPERTOIRE.md)
-- [Experiência desktop, responsividade e acessibilidade](docs/UX.md)
-- [Centro de conhecimento e significado dos indicadores](docs/KNOWLEDGE_UI.md)
-- [Revisão de release: achados, correções e provas](docs/RELEASE_REVIEW.md)
-- [Case de portfólio](docs/PORTFOLIO.md)
+## Documentação
+
+- [Case de portfólio](docs/PORTFOLIO.md) — problema, solução, experiência e resultados;
+- [Arquitetura](docs/ARCHITECTURE.md) — processos, protocolos e limites entre componentes;
+- [Conhecimento enxadrístico](docs/CHESS_KNOWLEDGE.md) — fatos, temas e planos detectados;
+- [Contrato das explicações](docs/LLM_EXPLANATIONS.md) — grounding, validação e custos;
+- [Revisão de release](docs/RELEASE_REVIEW.md) — problemas encontrados e provas de correção;
+- [Empacotamento Windows](docs/PACKAGING.md) — backend autocontido, NSIS e assinatura;
+- [Estado verificado](docs/STATUS.md) — escopo concluído e trabalho externo de ciclo de vida.
+
+## Estado da distribuição
+
+O produto local, o case de portfólio e o pipeline de release não assinada estão
+completos. A distribuição pública com identidade verificada exige apenas um
+certificado Authenticode externo. Mudanças futuras no DOM do Chess.com ou do
+Lichess fazem parte da manutenção normal dos adaptadores.
