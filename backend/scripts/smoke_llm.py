@@ -12,7 +12,12 @@ import chess
 from app.config import AppSettings
 from app.engine import StockfishManager
 from app.evidence import build_analysis_evidence
-from app.explanations import ExplanationService, OpenAIExplanationProvider
+from app.explanations import (
+    ExplanationProviderError,
+    ExplanationService,
+    ExplanationValidationError,
+    OpenAIExplanationProvider,
+)
 from app.logging_config import configure_logging
 from app.models import AnalyzeRequest, EngineSettings
 
@@ -76,3 +81,5 @@ if __name__ == "__main__":
         asyncio.run(run())
     except KeyboardInterrupt:
         sys.exit(130)
+    except (ExplanationProviderError, ExplanationValidationError) as exc:
+        raise SystemExit(f"Smoke test recusado com segurança: {exc}") from None

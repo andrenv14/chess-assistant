@@ -57,7 +57,7 @@ class AppSettings(BaseSettings):
     llm_api_base_url: str | None = None
     llm_api_key: str | None = None
     llm_model: str | None = None
-    llm_max_output_tokens: int = Field(default=1800, ge=256, le=8000)
+    llm_max_output_tokens: int = Field(default=3200, ge=256, le=8000)
 
     model_config = SettingsConfigDict(
         env_file=".env",

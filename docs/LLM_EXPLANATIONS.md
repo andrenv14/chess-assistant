@@ -8,13 +8,17 @@ different API can be added later without changing the chess evidence contract.
 
 The prompt contains:
 
-- the full Stockfish analysis and candidate order;
-- principal variations and configured opponent replies;
+- the Stockfish candidate order and evaluation anchors;
+- compact principal variations and configured opponent replies;
 - opening metadata when available;
 - deterministic position features;
 - candidate facts and language-neutral plan hints.
 - a compact grounding catalogue whose opaque IDs map to deterministic
   Stockfish, board and opening statements.
+
+The raw analysis object is not duplicated into the prompt. The grounding
+catalogue contains the facts the prose may use, which reduces input cost and
+shrinks the model's opportunity to wander into irrelevant fields.
 
 The system message treats every string inside the evidence JSON as untrusted
 data. Prompts and complete FENs are never written to logs.
@@ -51,7 +55,8 @@ The provider uses the OpenAI-compatible Python SDK against OpenRouter's
 OpenResponses endpoint. Structured Outputs receive the Pydantic model as
 `text_format`; OpenRouter routing sets `require_parameters=true`, so a provider
 that cannot honor the schema is rejected rather than silently ignoring it.
-Requests set `store=false`, cap output tokens, use a bounded timeout and retry a
+Requests set `store=false`, cap output tokens, require concise prose, use a
+bounded timeout and retry a
 network failure at most once. The service then performs the additional
 chess-specific UCI/order/grounding validation.
 

@@ -75,7 +75,7 @@ class FakeProvider:
         return self.payload
 
 
-def test_prompt_marks_stockfish_as_authority_and_serializes_evidence() -> None:
+def test_prompt_marks_stockfish_as_authority_and_builds_grounding_catalog() -> None:
     evidence = evidence_for("g1f3", "e2e4")
     prompt = build_explanation_prompt(evidence)
     payload = json.loads(prompt.user)
@@ -94,12 +94,11 @@ def test_prompt_marks_stockfish_as_authority_and_serializes_evidence() -> None:
     assert payload["grounding"]["candidates"][0]["supports"][0]["statement"].startswith(
         "Nf3 é a opção 1 do Stockfish"
     )
-    assert payload["evidence"]["candidates"][0]["plan_hints"] == [
-        "develop_and_coordinate"
-    ]
-    assert payload["evidence"]["position"]["white_pawns"]["pawn_island_count"] == 1
-    assert payload["evidence"]["position"]["strategic"]["white_bishop_pair"] is True
-    assert payload["evidence"]["position"]["endgame"]["active"] is False
+    assert "evidence" not in payload
+    assert any(
+        "desenvolve e coordena" in item["statement"]
+        for item in payload["grounding"]["candidates"][0]["supports"]
+    )
     assert prompt.response_schema["title"] == "PositionExplanation"
 
 
@@ -240,7 +239,7 @@ def test_openai_transport_uses_responses_structured_output_without_storage() -> 
     assert result["candidates"][0]["uci"] == "g1f3"
     assert responses.kwargs["model"] == "test-model"
     assert responses.kwargs["store"] is False
-    assert responses.kwargs["max_output_tokens"] == 1800
+    assert responses.kwargs["max_output_tokens"] == 3200
     assert responses.kwargs["text_format"] is PositionExplanation
 
 

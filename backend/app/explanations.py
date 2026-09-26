@@ -23,6 +23,8 @@ Plan hints são pistas verificadas, não conclusões estratégicas completas.
 Nunca exponha nomes internos como plan_hints, snake_case ou chaves do JSON.
 Traduza sinais técnicos para linguagem natural de xadrez em português.
 Explique a ideia antes dos números; não despeje variantes longas nem recite o JSON.
+Seja conciso: resumo com até 90 palavras, explicação com até 80 palavras,
+no máximo três passos curtos, resposta com até 45 palavras e alerta com até 25.
 Use tom humano, fluido e útil, sem dizer "rank", "evidência" ou "registrado".
 Use ortografia brasileira correta, inclusive acentos e cedilha.
 Não afirme qual foi o último lance: uma FEN isolada não contém esse histórico.
@@ -222,7 +224,6 @@ def _grounding_payload(evidence: AnalysisEvidenceResponse) -> dict[str, Any]:
 
 def build_explanation_prompt(evidence: AnalysisEvidenceResponse) -> ExplanationPrompt:
     """Build a provider-neutral prompt whose data cannot override system rules."""
-    payload = evidence.model_dump(mode="json")
     user = json.dumps(
         {
             "task": "Explique a posição e cada candidato na ordem recebida.",
@@ -251,7 +252,6 @@ def build_explanation_prompt(evidence: AnalysisEvidenceResponse) -> ExplanationP
                 ],
             },
             "grounding": _grounding_payload(evidence),
-            "evidence": payload,
         },
         ensure_ascii=False,
         separators=(",", ":"),
@@ -369,7 +369,7 @@ class OpenAIExplanationProvider:
         model: str,
         base_url: str | None = None,
         timeout_seconds: float = 45,
-        max_output_tokens: int = 1800,
+        max_output_tokens: int = 3200,
         client: Any | None = None,
     ) -> None:
         self.model = model
