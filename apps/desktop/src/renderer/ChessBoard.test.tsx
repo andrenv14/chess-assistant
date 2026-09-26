@@ -25,8 +25,8 @@ describe("ChessBoard", () => {
     const pieces = parseFenPlacement(STARTING_FEN);
 
     expect(pieces).toHaveLength(32);
-    expect(pieces.get("e1")).toEqual({ color: "white", symbol: "♔" });
-    expect(pieces.get("d8")).toEqual({ color: "black", symbol: "♛" });
+    expect(pieces.get("e1")).toMatchObject({ color: "white", name: "rei branco" });
+    expect(pieces.get("d8")).toMatchObject({ color: "black", name: "dama preta" });
   });
 
   it("maps a candidate arrow in both orientations", () => {
@@ -52,6 +52,10 @@ describe("ChessBoard", () => {
       "chessboard__square--to",
     );
     expect(document.querySelector(".chessboard__arrow")).not.toBeNull();
+    expect(document.querySelectorAll(".chessboard__piece")).toHaveLength(32);
+    expect(document.querySelector('[aria-label="rei branco"]')).toBeInstanceOf(
+      HTMLImageElement,
+    );
 
     await act(async () =>
       root?.render(<ChessBoard fen="not-a-fen" orientation="white" moveUci={null} />),

@@ -20,6 +20,10 @@ the extension is still loaded unpacked.
 
 - three independently configurable Stockfish roles and real Stockfish 19 tests;
 - eval bar data, candidates, principal variations and opponent replies;
+- one-search initial analysis: the principal opponent reply is reused from each
+  MultiPV line, the optional full-strength evaluator is not run by the default
+  UI request, and a 500 ms advisor profile completed the packaged-backend QA
+  fixture in under one second after startup;
 - reconstruction and base classification of the played move;
 - deterministic Brilliant, Great and Miss rules with sacrifice, forcing-line
   and unique-second-choice evidence returned to the desktop;
@@ -49,7 +53,7 @@ the extension is still loaded unpacked.
 - real extension-to-desktop WebSocket forwarding with backend acknowledgement,
   plus latest-position queuing and replay after reconnect;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
-  order enforcement (`google/gemini-3.8-flash`);
+  order enforcement (`google/gemini-3.1-flash-lite`);
 - evidence-cited LLM output: position and candidate prose must reference a
   server-built grounding catalogue, and the named critical reply must match the
   strongest configured Stockfish response; the compact grounded prompt passed
@@ -73,6 +77,13 @@ the extension is still loaded unpacked.
 - multi-page React experience separating the analysis cockpit from a dedicated
   knowledge center, with interactive panorama, tactics, strategy and endgame
   views around a persistent board;
+- three-column initial workspace dedicated to the SVG board, Stockfish's best
+  moves/lines/centipawns, and immediately available deterministic knowledge;
+- automatic board orientation and advisor-role selection from the browser,
+  including negative centipawns presented explicitly as a Black advantage;
+- focused London, `...c5/...e6` Sicilian (Kan/Taimanov), and King's Indian
+  repertoire knowledge with plans for both sides, tactical themes, cautions and
+  model lines;
 - explainable white/black indicators for development, king safety and pawn
   health, visually and contractually separated from the Stockfish evaluation;
 - browser QA at desktop and tablet widths for the analysis cockpit and PV

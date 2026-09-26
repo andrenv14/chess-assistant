@@ -4,6 +4,20 @@ export function formatEvaluation(cp: number | null, mate: number | null): string
   return `${cp >= 0 ? "+" : ""}${(cp / 100).toFixed(2)}`;
 }
 
+export function formatCentipawns(cp: number | null, mate: number | null): string {
+  if (mate !== null) return mate > 0 ? "mate para as brancas" : "mate para as pretas";
+  if (cp === null) return "avaliação indisponível";
+  const sign = cp > 0 ? "+" : cp < 0 ? "−" : "";
+  return `${sign}${Math.abs(cp)} cp`;
+}
+
+export function evaluationPerspective(cp: number | null, mate: number | null): string {
+  if (mate !== null) return mate > 0 ? "Brancas vencem" : "Pretas vencem";
+  if (cp === null) return "Sem avaliação";
+  if (Math.abs(cp) < 20) return "Equilíbrio";
+  return cp > 0 ? "Brancas melhores" : "Pretas melhores";
+}
+
 export function evaluationToWhitePercent(cp: number | null, mate: number | null): number {
   if (mate !== null) return mate > 0 ? 100 : 0;
   if (cp === null) return 50;
@@ -14,6 +28,7 @@ export function formatProbability(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
 }
 import type {
+  CandidateEvidence,
   MoveFacts,
   PlanHint,
   PositionFeaturesResponse,
@@ -194,4 +209,17 @@ export function formatPlanHint(hint: PlanHint, facts?: MoveFacts): string {
     return `interromper o ataque contra ${formatSquares(facts.interfered_attack_targets)}`;
   }
   return PLAN_LABELS[hint];
+}
+
+export function formatCandidateIdea(candidate: CandidateEvidence): string {
+  const ideas = candidate.plan_hints
+    .slice(0, 2)
+    .map((hint) => formatPlanHint(hint, candidate.facts));
+  const reply = candidate.opponent_replies[0];
+  if (ideas.length && reply) {
+    return `Ideia: ${ideas.join(" e ")}. Resposta principal: ${reply.san}.`;
+  }
+  if (ideas.length) return `Ideia: ${ideas.join(" e ")}.`;
+  if (reply) return `A linha principal espera ${reply.san} como resposta.`;
+  return "A prioridade é melhorar a posição sem conceder uma resposta forçante.";
 }

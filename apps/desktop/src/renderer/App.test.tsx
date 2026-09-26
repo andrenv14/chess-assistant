@@ -11,8 +11,9 @@ const api = vi.hoisted(() => ({
   analyzeEvidence: vi.fn(),
   classifyMove: vi.fn(),
   clearAnalysisHistory: vi.fn(),
-  explainPosition: vi.fn(),
+  explainEvidence: vi.fn(),
   getAnalysisHistoryItem: vi.fn(),
+  getPositionFeatures: vi.fn(),
   getSettings: vi.fn(),
   listAnalysisHistory: vi.fn(),
   predictHumanMoves: vi.fn(),
@@ -80,6 +81,7 @@ beforeEach(() => {
       candidate_san: ["Nf3", "e4", "d4"],
     },
   ]);
+  api.getPositionFeatures.mockRejectedValue(new Error("not needed by this fixture"));
   api.getAnalysisHistoryItem.mockResolvedValue({
     analysis: {
       fen: STARTING_FEN,
@@ -255,6 +257,59 @@ describe("App integration surface", () => {
     expect(document.querySelector('[data-square="c4"]')?.classList).toContain(
       "chessboard__square--to",
     );
+  });
+
+  it("uses the user engine and black perspective when the live board is flipped", async () => {
+    const blackToMove = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
+    api.analyzeEvidence.mockResolvedValue({
+      analysis: {
+        fen: blackToMove,
+        actor: "user",
+        advisor_role: "user",
+        reply_role: "opponent",
+        evaluation_cp: -41,
+        evaluation_mate: null,
+        opening: null,
+        candidates: [
+          {
+            uci: "c7c5",
+            san: "c5",
+            score_cp: -41,
+            mate: null,
+            pv_uci: ["c7c5", "g1f3"],
+            pv_san: ["c5", "Nf3"],
+            replies: [],
+          },
+        ],
+      },
+      position: undefined,
+      candidates: [],
+    });
+
+    await act(async () => root?.render(<App />));
+    await vi.waitFor(() => expect(FakeWebSocket.last).not.toBeNull());
+    await act(async () => {
+      FakeWebSocket.last?.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "position",
+            fen: blackToMove,
+            source: "chesscom-live",
+            orientation: "black",
+            at: "2026-09-25T12:00:00Z",
+          }),
+        }),
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(api.analyzeEvidence).toHaveBeenCalledWith(
+        expect.objectContaining({ fen: blackToMove, actor: "user" }),
+      );
+      expect(document.body.textContent).toContain("Pretas melhores");
+      expect(document.body.textContent).toContain("−41 cp");
+    });
+    expect(document.querySelector(".chessboard__square")?.getAttribute("data-square")).toBe("h1");
   });
 
   it("runs the current position from the documented keyboard shortcut", async () => {

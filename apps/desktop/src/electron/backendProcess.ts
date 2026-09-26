@@ -2,7 +2,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-const HEALTH_URL = "http://127.0.0.1:8765/health";
+const DEFAULT_BACKEND_PORT = 8765;
+const HEALTH_URL = `http://127.0.0.1:${DEFAULT_BACKEND_PORT}/health`;
 
 export interface BackendController {
   owned: boolean;
@@ -17,6 +18,7 @@ type SpawnProcess = (
 
 interface BackendStartOptions {
   backendDirectory: string;
+  port?: number;
   pythonPath?: string;
   healthUrl?: string;
   timeoutMs?: number;
@@ -67,6 +69,7 @@ export function resolveBackendInvocation(
   backendDirectory: string,
   pythonOverride?: string,
   fileExists: (path: string) => boolean = existsSync,
+  port = DEFAULT_BACKEND_PORT,
 ): BackendInvocation {
   if (!pythonOverride) {
     const portableName = process.platform === "win32"
@@ -80,7 +83,7 @@ export function resolveBackendInvocation(
 
   return {
     command: resolvePythonPath(backendDirectory, pythonOverride),
-    args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8765"],
+    args: ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", String(port)],
   };
 }
 
@@ -90,7 +93,12 @@ export async function ensureBackend(options: BackendStartOptions): Promise<Backe
   const checkReady = options.checkReady ?? (() => isBackendReady(healthUrl));
   if (await checkReady()) return externalBackendController();
 
-  const invocation = resolveBackendInvocation(options.backendDirectory, options.pythonPath);
+  const invocation = resolveBackendInvocation(
+    options.backendDirectory,
+    options.pythonPath,
+    existsSync,
+    options.port,
+  );
   const spawnProcess = options.spawnProcess ?? spawn;
   const child = spawnProcess(
     invocation.command,

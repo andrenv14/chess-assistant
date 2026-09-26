@@ -12,10 +12,14 @@ import type {
   HumanPredictionResponse,
   HistoryClearResponse,
   MoveClassificationResponse,
+  PositionFeaturesResponse,
 } from "@chess-assistant/contracts";
 
-export const API_BASE = "http://127.0.0.1:8765";
-export const WS_BASE = "ws://127.0.0.1:8765";
+const BACKEND_PORT = typeof window === "undefined"
+  ? "8765"
+  : new URLSearchParams(window.location.search).get("backendPort") ?? "8765";
+export const API_BASE = `http://127.0.0.1:${BACKEND_PORT}`;
+export const WS_BASE = `ws://127.0.0.1:${BACKEND_PORT}`;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, init);
@@ -65,6 +69,16 @@ export function explainPosition(payload: AnalyzeRequest): Promise<ExplainedAnaly
   });
 }
 
+export function explainEvidence(
+  payload: AnalysisEvidenceResponse,
+): Promise<ExplainedAnalysisResponse> {
+  return request("/api/explain/evidence", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export function classifyMove(
   payload: ClassifyMoveRequest,
 ): Promise<MoveClassificationResponse> {
@@ -82,6 +96,14 @@ export function predictHumanMoves(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+  });
+}
+
+export function getPositionFeatures(fen: string): Promise<PositionFeaturesResponse> {
+  return request("/api/features", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fen }),
   });
 }
 

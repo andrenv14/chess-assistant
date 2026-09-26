@@ -118,6 +118,9 @@ export function isBrowserEvent(value: unknown): value is BrowserEvent {
     event.type === "position" &&
     typeof event.fen === "string" &&
     isFen(event.fen) &&
+    (event.orientation === undefined
+      || event.orientation === "white"
+      || event.orientation === "black") &&
     [
       "lichess-analysis",
       "lichess-live",

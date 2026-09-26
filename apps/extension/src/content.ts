@@ -15,6 +15,7 @@ function publishPosition(): void {
   const event: BrowserEvent = {
     type: "position",
     fen: position.fen,
+    orientation: position.orientation,
     source: position.source,
     at: new Date().toISOString(),
   };

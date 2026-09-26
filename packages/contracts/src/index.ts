@@ -43,6 +43,19 @@ export interface OpeningInfo {
   source: "lichess-chess-openings";
 }
 
+export interface RepertoireKnowledge {
+  id: "london" | "sicilian_e6" | "kings_indian";
+  name: string;
+  side: "white" | "black";
+  eco_range: string;
+  summary: string;
+  plans_for_us: string[];
+  opponent_plans: string[];
+  tactical_themes: string[];
+  traps: string[];
+  sample_lines: string[];
+}
+
 export interface AnalyzeRequest {
   fen: string;
   actor: "user" | "opponent";
@@ -317,6 +330,7 @@ export interface AnalysisEvidenceResponse {
   analysis: AnalyzeResponse;
   position: PositionFeaturesResponse;
   candidates: CandidateEvidence[];
+  repertoire: RepertoireKnowledge | null;
 }
 
 export interface AnalysisHistorySummary {
@@ -360,6 +374,7 @@ export interface ExplainedAnalysisResponse {
 export interface BrowserPositionEvent {
   type: "position";
   fen: string;
+  orientation?: "white" | "black";
   source:
     | "lichess-analysis"
     | "lichess-live"

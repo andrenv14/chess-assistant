@@ -10,18 +10,21 @@ import type {
   MoveClassificationResponse,
   PositionExplanation,
   PositionFeaturesResponse,
+  RepertoireKnowledge,
 } from "@chess-assistant/contracts";
 import { logEvent } from "@chess-assistant/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChessBoard } from "./ChessBoard";
 import { KnowledgeView } from "./KnowledgeView";
+import { PositionBrief } from "./PositionBrief";
 import {
   analyzeEvidence,
   classifyMove,
   clearAnalysisHistory,
-  explainPosition,
+  explainEvidence,
   getAnalysisHistoryItem,
+  getPositionFeatures,
   getSettings,
   listAnalysisHistory,
   predictHumanMoves,
@@ -30,6 +33,9 @@ import {
 } from "./api";
 import {
   evaluationToWhitePercent,
+  evaluationPerspective,
+  formatCandidateIdea,
+  formatCentipawns,
   formatEvaluation,
   formatPlanHint,
   formatPositionThemes,
@@ -228,6 +234,7 @@ export function App() {
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
   const [candidateEvidence, setCandidateEvidence] = useState<CandidateEvidence[]>([]);
   const [positionFeatures, setPositionFeatures] = useState<PositionFeaturesResponse | null>(null);
+  const [repertoire, setRepertoire] = useState<RepertoireKnowledge | null>(null);
   const [history, setHistory] = useState<AnalysisHistorySummary[]>([]);
   const [humanView, setHumanView] = useState<HumanPredictionResponse | null>(null);
   const [lastMove, setLastMove] = useState<MoveClassificationResponse | null>(null);
@@ -274,6 +281,7 @@ export function App() {
     setAnalysis(null);
     setCandidateEvidence([]);
     setPositionFeatures(null);
+    setRepertoire(null);
     setHumanView(null);
     setExplanation(null);
     setSelectedCandidate(0);
@@ -328,6 +336,10 @@ export function App() {
       changeFen(event.fen);
 
       if (event.source !== "manual") setSource(event.source);
+      if (event.orientation) setOrientation(event.orientation);
+      const turn = event.fen.trim().split(/\s+/)[1] === "b" ? "black" : "white";
+      const detectedActor = event.orientation && turn !== event.orientation ? "opponent" : "user";
+      setActor(detectedActor);
 
       if (beforeFen && beforeFen !== event.fen && event.source !== "manual") {
         void classifyMove({ before_fen: beforeFen, after_fen: event.fen })
@@ -338,7 +350,7 @@ export function App() {
           });
       }
       if (autoAnalyzeRef.current && event.source !== "manual") {
-        void runAnalysis(event.fen, actorRef.current);
+        void runAnalysis(event.fen, detectedActor);
       }
     };
     return () => socket.close();
@@ -358,6 +370,17 @@ export function App() {
     setPositionFeatures(null);
     setExplanation(null);
     try {
+      // Position knowledge is deterministic and cheap. Load it independently
+      // so the third column becomes useful immediately while Stockfish keeps
+      // calculating candidates in the background.
+      void getPositionFeatures(targetFen)
+        .then((features) => {
+          if (analysisRequestId.current === requestId) setPositionFeatures(features);
+        })
+        .catch(() => {
+          logEvent("warn", "fast_position_features_skipped", { component: "desktop" });
+        });
+
       const activeSettings = settingsRef.current ?? settings;
       const selfRole = targetActor === "user" ? "user" : "opponent";
       const opponentRole = targetActor === "user" ? "opponent" : "user";
@@ -379,7 +402,7 @@ export function App() {
       const bundle = await analyzeEvidence({
         fen: targetFen,
         actor: targetActor,
-        include_evaluator: true,
+        include_evaluator: false,
         include_replies: true,
       });
       if (analysisRequestId.current !== requestId) return;
@@ -387,6 +410,7 @@ export function App() {
       setAnalysis(result);
       setCandidateEvidence(bundle.candidates);
       setPositionFeatures(bundle.position);
+      setRepertoire(bundle.repertoire);
       void refreshHistory();
       logEvent("info", "analysis_completed", {
         component: "desktop",
@@ -408,16 +432,18 @@ export function App() {
     setExplaining(true);
     setStatus("Gerando explicação…");
     try {
-      const result = await explainPosition({
-        fen: analysis.fen,
-        actor: analysis.actor,
-        include_evaluator: true,
-        include_replies: true,
+      if (!positionFeatures || positionFeatures.fen !== analysis.fen) return;
+      const result = await explainEvidence({
+        analysis,
+        candidates: candidateEvidence,
+        position: positionFeatures,
+        repertoire,
       });
       if (requestId !== explanationRequestId.current) return;
       setAnalysis(result.evidence.analysis);
       setCandidateEvidence(result.evidence.candidates);
       setPositionFeatures(result.evidence.position);
+      setRepertoire(result.evidence.repertoire);
       setExplanation(result.explanation);
       void refreshHistory();
       setStatus("Explicação concluída");
@@ -510,6 +536,7 @@ export function App() {
       setAnalysis(bundle.analysis);
       setCandidateEvidence(bundle.candidates);
       setPositionFeatures(bundle.position);
+      setRepertoire(bundle.repertoire);
       setStatus("Análise restaurada do histórico local");
     } catch (error) {
       if (analysisRequestId.current !== requestId) return;
@@ -622,6 +649,7 @@ export function App() {
       </nav>
 
       {activePage === "analysis" ? (
+      <>
       <div className="workspace">
         <section className="panel board-panel">
           <div className="panel-heading board-panel__heading">
@@ -671,11 +699,12 @@ export function App() {
           <div className="panel-heading analysis-heading">
             <div>
               <p className="eyebrow">ANÁLISE DO STOCKFISH</p>
-              <h2>{analysis ? "Melhores planos" : "Pronto para analisar"}</h2>
+              <h2>{analysis ? "Melhores lances" : "Pronto para analisar"}</h2>
             </div>
             {analysis && (
-              <span className="evaluation-badge">
-                {formatEvaluation(analysis.evaluation_cp, analysis.evaluation_mate)}
+              <span className="evaluation-badge" title="Avaliação sempre pela perspectiva das brancas">
+                <b>{formatEvaluation(analysis.evaluation_cp, analysis.evaluation_mate)}</b>
+                <small>{evaluationPerspective(analysis.evaluation_cp, analysis.evaluation_mate)}</small>
               </span>
             )}
           </div>
@@ -782,9 +811,13 @@ export function App() {
                       <strong>{move.san}</strong>
                       <code>{move.uci}{index > 0 && gap ? ` · ${gap}` : ""}</code>
                     </span>
-                    <span className="move__score">{formatEvaluation(move.score_cp, move.mate)}</span>
+                    <span className="move__score" title="+ favorece brancas; − favorece pretas">
+                      <b>{formatEvaluation(move.score_cp, move.mate)}</b>
+                      <small>{formatCentipawns(move.score_cp, move.mate)}</small>
+                    </span>
                     <span className="move__chevron" aria-hidden="true">›</span>
                   </button>
+                  {evidence && <p className="move__quick-explanation">{formatCandidateIdea(evidence)}</p>}
                   {!selected && (
                     <p className="variation"><span>Linha</span>{move.pv_san.join(" ")}</p>
                   )}
@@ -876,7 +909,7 @@ export function App() {
                   )}
                   {selected && move.replies.length > 0 && (
                     <div className="replies">
-                      <span>Melhores defesas do oponente</span>
+                      <span>Resposta principal do oponente</span>
                       {move.replies.map((reply) => (
                         <div key={reply.uci}>
                           <b>{reply.san}</b><small>{reply.pv_san.join(" ")}</small>
@@ -902,45 +935,42 @@ export function App() {
           </div>
         </section>
 
-        <aside className="panel settings">
-          <div className="settings__heading">
-            <div>
-              <p className="eyebrow">CENTRAL DE CONTROLE</p>
-              <h2>Motores</h2>
+        <PositionBrief
+          candidates={candidateEvidence}
+          onOpen={() => setActivePage("knowledge")}
+          position={positionFeatures}
+          repertoire={repertoire}
+        />
+      </div>
+
+      <details className="panel utility-drawer">
+        <summary>
+          <span><b>Configurações e histórico</b><small>Força dos motores, IA e posições recentes</small></span>
+          <span>{settings ? `${enabledEngineCount}/3 motores ativos` : "Carregando…"}⌄</span>
+        </summary>
+        <div className="utility-drawer__content">
+          <section className="settings settings--embedded">
+            <div className="settings__heading">
+              <div><p className="eyebrow">MOTORES</p><h2>Força e cálculo</h2></div>
             </div>
-            <span className="settings__count">
-              {settings ? `${enabledEngineCount}/3 ativos` : "—"}
-            </span>
-          </div>
-          <div className="service-status">
-            <span className={settings?.stockfish_path ? "service-status__ok" : ""}>
-              <i /> Stockfish
-            </span>
-            <span className={settings?.llm_configured ? "service-status__ok" : ""}>
-              <i /> IA {settings?.llm_configured ? "pronta" : "opcional"}
-            </span>
-          </div>
-          {settings && ROLES.map((role) => (
-            <ProfileEditor
-              key={role}
-              role={role}
-              profile={settings.profiles[role]}
-              onSave={saveProfile}
-            />
-          ))}
-          <section className="history">
+            <div className="service-status">
+              <span className={settings?.stockfish_path ? "service-status__ok" : ""}><i /> Stockfish</span>
+              <span className={settings?.llm_configured ? "service-status__ok" : ""}>
+                <i /> IA {settings?.llm_configured ? "pronta" : "opcional"}
+              </span>
+            </div>
+            <div className="utility-drawer__profiles">
+              {settings && ROLES.map((role) => (
+                <ProfileEditor key={role} role={role} profile={settings.profiles[role]} onSave={saveProfile} />
+              ))}
+            </div>
+          </section>
+          <section className="history history--embedded">
             <div className="history__heading">
-              <div>
-                <p className="eyebrow">HISTÓRICO LOCAL</p>
-                <h3>Posições recentes</h3>
-              </div>
-              {history.length > 0 && (
-                <button className="history__clear" onClick={() => void clearHistory()}>Limpar</button>
-              )}
+              <div><p className="eyebrow">HISTÓRICO LOCAL</p><h3>Posições recentes</h3></div>
+              {history.length > 0 && <button className="history__clear" onClick={() => void clearHistory()}>Limpar</button>}
             </div>
-            {history.length === 0 ? (
-              <p className="history__empty">As posições analisadas aparecerão aqui.</p>
-            ) : (
+            {history.length === 0 ? <p className="history__empty">As posições analisadas aparecerão aqui.</p> : (
               <div className="history__items">
                 {history.map((item) => (
                   <button className="history__item" key={item.id} onClick={() => void restoreHistory(item)}>
@@ -951,8 +981,9 @@ export function App() {
               </div>
             )}
           </section>
-        </aside>
-      </div>
+        </div>
+      </details>
+      </>
       ) : (
         <KnowledgeView
           analysis={analysis}
@@ -962,6 +993,7 @@ export function App() {
           onFlip={() => setOrientation((current) => current === "white" ? "black" : "white")}
           orientation={orientation}
           position={positionFeatures}
+          repertoire={repertoire}
         />
       )}
     </main>

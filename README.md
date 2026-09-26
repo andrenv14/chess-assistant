@@ -29,6 +29,10 @@ sem depender das demais.
 - explicações estruturadas e validadas via OpenRouter/OpenResponses, ancoradas
   em evidências do Stockfish e do analisador determinístico;
 - perfis e histórico recente persistidos localmente em SQLite.
+- repertório especializado em London, Siciliana Kan/Taimanov e Índia do Rei,
+  com planos, contrajogo, temas táticos, armadilhas e linhas-modelo locais;
+- análise inicial rápida: as respostas são reaproveitadas da própria variante
+  principal e o conhecimento determinístico chega sem esperar a prosa da LLM.
 
 ## Arquitetura
 
@@ -58,9 +62,10 @@ O backend descobre essa instalação automaticamente. Como alternativa, defina o
 caminho de outro motor copiando `backend/.env.example` para `backend/.env` e
 ajustando `STOCKFISH_PATH`.
 
-As explicações usam uma API externa opcional. O exemplo configura o modelo
-`google/gemini-3.8-flash` via OpenRouter; a chave permanece somente no arquivo
-local ignorado pelo Git ou no ambiente do processo.
+As explicações usam uma API externa opcional. O exemplo configura
+`google/gemini-3.1-flash-lite` via OpenRouter: é a opção padrão de baixa latência
+e baixo custo para a saída estruturada deste app. A chave permanece somente no
+arquivo local ignorado pelo Git ou no ambiente do processo.
 
 Maia-3 é opcional e mais pesado. Para instalar seu ambiente isolado sem baixar
 o checkpoint antecipadamente:
@@ -100,7 +105,9 @@ npm run dev:desktop
 
 Se já existir uma instância saudável em `127.0.0.1:8765`, o desktop a reutiliza
 e não a encerra ao sair. Para usar outro Python ou diretório de backend, defina
-`CHESS_ASSISTANT_PYTHON` ou `CHESS_ASSISTANT_BACKEND_DIR` no ambiente.
+`CHESS_ASSISTANT_PYTHON` ou `CHESS_ASSISTANT_BACKEND_DIR` no ambiente. A porta
+também pode ser isolada com `CHESS_ASSISTANT_PORT`; desktop, backend e renderer
+passam a usar o mesmo valor.
 
 O smoke test abaixo compila o desktop, inicia o backend real, valida saúde,
 persistência temporária e o transporte WebSocket extensão → backend → desktop,
@@ -152,6 +159,7 @@ A demonstração visual pronta para o portfólio está em
 - `POST /api/analyze` — calcula melhores lances e respostas;
 - `POST /api/evidence` — análise Stockfish enriquecida com planos verificáveis;
 - `POST /api/explain` — explicação estruturada via API, quando configurada;
+- `POST /api/explain/evidence` — explica evidências existentes sem recalcular o Stockfish;
 - `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
 - `GET /api/opening?fen=...` — identifica uma posição no catálogo local;
 - `POST /api/human-prediction` — candidatos humanos opcionais via Maia-3;
@@ -200,5 +208,6 @@ Exemplo de alteração de força:
 - [Adaptadores do Lichess e Chess.com](docs/SITE_ADAPTERS.md)
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)
 - [Empacotamento e instalação Windows](docs/PACKAGING.md)
+- [Repertório especializado](docs/REPERTOIRE.md)
 - [Experiência desktop, responsividade e acessibilidade](docs/UX.md)
 - [Centro de conhecimento e significado dos indicadores](docs/KNOWLEDGE_UI.md)

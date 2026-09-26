@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "docs" / "assets" / "portfolio"
@@ -12,6 +12,11 @@ FRAMES = [
     ("05-endgame-100.png", "Final: material e padrões teóricos"),
 ]
 
+# Pillow's tiny built-in fallback font does not contain Portuguese accents.
+# DejaVu Sans ships with Pillow and keeps the demo reproducible across Windows,
+# Linux and macOS development hosts.
+TITLE_FONT = ImageFont.truetype("DejaVuSans.ttf", 24)
+
 
 def frame(path: Path, title: str) -> Image.Image:
     image = Image.open(path).convert("RGB")
@@ -20,7 +25,7 @@ def frame(path: Path, title: str) -> Image.Image:
     x = (canvas.width - image.width) // 2
     canvas.paste(image, (x, 58))
     draw = ImageDraw.Draw(canvas)
-    draw.text((42, 20), title, fill="#d9efb9", font_size=24)
+    draw.text((42, 20), title, fill="#d9efb9", font=TITLE_FONT)
     return canvas
 
 

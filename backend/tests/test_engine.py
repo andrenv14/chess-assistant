@@ -4,7 +4,7 @@ import chess
 import chess.engine
 
 from app.engine import StockfishManager
-from app.models import ClassifyMoveRequest, EngineSettings
+from app.models import AnalyzeRequest, ClassifyMoveRequest, EngineSettings
 
 
 class FakeEngine:
@@ -52,6 +52,53 @@ def test_full_strength_profile_does_not_send_uci_elo() -> None:
     assert engine.configured is not None
     assert engine.configured["UCI_LimitStrength"] is False
     assert "UCI_Elo" not in engine.configured
+
+
+class CountingAnalysisEngine(FakeEngine):
+    def __init__(self) -> None:
+        super().__init__()
+        self.analysis_count = 0
+
+    def analyse(
+        self,
+        _board: chess.Board,
+        _limit: chess.engine.Limit,
+        *,
+        multipv: int,
+    ) -> list[dict[str, object]]:
+        self.analysis_count += 1
+        assert multipv == 2
+        return [
+            {
+                "pv": [chess.Move.from_uci("e2e4"), chess.Move.from_uci("e7e5")],
+                "score": chess.engine.PovScore(chess.engine.Cp(35), chess.WHITE),
+            },
+            {
+                "pv": [chess.Move.from_uci("d2d4"), chess.Move.from_uci("d7d5")],
+                "score": chess.engine.PovScore(chess.engine.Cp(22), chess.WHITE),
+            },
+        ]
+
+
+def test_analysis_reuses_principal_variations_for_replies(monkeypatch) -> None:
+    manager = StockfishManager(Path("unused-in-this-unit-test"))
+    engine = CountingAnalysisEngine()
+    manager.update_profile(
+        "user",
+        EngineSettings(move_time_ms=100, multipv=2),
+    )
+    monkeypatch.setattr(manager, "_get_engine", lambda _role: engine)
+
+    result = manager._analyze_sync(
+        AnalyzeRequest(
+            fen=chess.STARTING_FEN,
+            include_evaluator=False,
+            include_replies=True,
+        )
+    )
+
+    assert engine.analysis_count == 1
+    assert [candidate.replies[0].san for candidate in result.candidates] == ["e5", "d5"]
 
 
 class FakeAnalysisEngine:

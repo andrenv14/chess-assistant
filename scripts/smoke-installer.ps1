@@ -1,5 +1,6 @@
 param(
-    [string]$Installer = "apps/desktop/release/Chess-Assistant-0.1.0-Setup.exe"
+    [string]$Installer = "apps/desktop/release/Chess-Assistant-0.1.0-Setup.exe",
+    [int]$BackendPort = 18766
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,7 +18,7 @@ function Wait-Health([bool]$Expected, [int]$Seconds = 30) {
     while ((Get-Date) -lt $deadline) {
         $healthy = $false
         try {
-            $response = Invoke-RestMethod -Uri "http://127.0.0.1:8765/health" -TimeoutSec 1
+            $response = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/health" -TimeoutSec 1
             $healthy = $response.status -eq "ok"
         } catch {}
         if ($healthy -eq $Expected) { return }
@@ -33,19 +34,22 @@ try {
     if (-not (Test-Path -LiteralPath $appExe)) { throw "Installed application was not found." }
 
     $previousLocalAppData = $env:LOCALAPPDATA
+    $previousBackendPort = $env:CHESS_ASSISTANT_PORT
     $env:LOCALAPPDATA = $dataDir
+    $env:CHESS_ASSISTANT_PORT = [string]$BackendPort
     try {
         $appProcess = Start-Process -FilePath $appExe -ArgumentList "--force-device-scale-factor=1","--remote-debugging-port=9242" -WindowStyle Hidden -PassThru
     } finally {
         $env:LOCALAPPDATA = $previousLocalAppData
+        $env:CHESS_ASSISTANT_PORT = $previousBackendPort
     }
     Wait-Health $true 45
     & node (Join-Path $repoRoot "scripts\check-installed-renderer.mjs") 9242
     if ($LASTEXITCODE -ne 0) { throw "Installed renderer check failed." }
 
-    $health = Invoke-RestMethod -Uri "http://127.0.0.1:8765/health"
+    $health = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/health"
     $body = @{ fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; actor = "user" } | ConvertTo-Json
-    $analysis = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/evidence" -Method Post -ContentType "application/json" -Body $body
+    $analysis = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/evidence" -Method Post -ContentType "application/json" -Body $body
     if ($health.opening_positions -ne 3815 -or $analysis.candidates.Count -lt 3) {
         throw "Installed build did not return the expected catalogue and candidates."
     }

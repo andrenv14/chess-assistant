@@ -2,6 +2,7 @@ import type {
   AnalyzeResponse,
   CandidateEvidence,
   PositionFeaturesResponse,
+  RepertoireKnowledge,
 } from "@chess-assistant/contracts";
 import { useMemo, useState } from "react";
 
@@ -20,6 +21,7 @@ interface KnowledgeViewProps {
   onFlip: () => void;
   orientation: "white" | "black";
   position: PositionFeaturesResponse | null;
+  repertoire: RepertoireKnowledge | null;
 }
 
 function Meter({ label, score }: { label: string; score: number }) {
@@ -52,6 +54,7 @@ export function KnowledgeView({
   onFlip,
   orientation,
   position,
+  repertoire,
 }: KnowledgeViewProps) {
   const [topic, setTopic] = useState<KnowledgeTopic>("overview");
   const [sideFocus, setSideFocus] = useState<SideFocus>("both");
@@ -178,6 +181,22 @@ export function KnowledgeView({
                 <div><p className="eyebrow">LEITURA RÁPIDA</p><h3>O que define esta posição</h3></div>
                 <FactList items={themes} empty="Nenhum desequilíbrio estrutural marcante foi detectado." />
               </article>
+              {repertoire && (
+                <article className="panel repertoire-deep-dive knowledge-card--wide">
+                  <header>
+                    <div><p className="eyebrow">REPERTÓRIO ESPECIALIZADO · {repertoire.eco_range}</p><h3>{repertoire.name}</h3></div>
+                    <span>{repertoire.side === "white" ? "Brancas" : "Pretas"}</span>
+                  </header>
+                  <p className="repertoire-deep-dive__summary">{repertoire.summary}</p>
+                  <div className="repertoire-deep-dive__grid">
+                    <section><h4>Seus planos</h4><ol>{repertoire.plans_for_us.map((item) => <li key={item}>{item}</li>)}</ol></section>
+                    <section><h4>Planos do adversário</h4><ol>{repertoire.opponent_plans.map((item) => <li key={item}>{item}</li>)}</ol></section>
+                    <section><h4>Temas táticos</h4><ul>{repertoire.tactical_themes.map((item) => <li key={item}>{item}</li>)}</ul></section>
+                    <section><h4>Armadilhas e cuidados</h4><ul>{repertoire.traps.map((item) => <li key={item}>{item}</li>)}</ul></section>
+                  </div>
+                  <footer><b>Linhas-modelo</b>{repertoire.sample_lines.map((line) => <code key={line}>{line}</code>)}</footer>
+                </article>
+              )}
             </>
           )}
 

@@ -68,8 +68,8 @@ The current milestone has a working analysis API, runtime Stockfish profiles,
 snapshot transport, base move classification, offline opening lookup, position
 and candidate evidence, a schema-validated LLM explanation boundary, and an
 optional Maia-3 UCI adapter. The OpenRouter/OpenResponses transport has passed a
-live end-to-end test with native Stockfish evidence and a structured Gemini 3.8
-Flash response. Engine profiles and recent deterministic analyses now survive a
+live end-to-end test with native Stockfish evidence and a structured Gemini 3.1
+Flash Lite response. Engine profiles and recent deterministic analyses now survive a
 backend restart through a bounded local SQLite store.
 The analysis and playable-board adapters have been verified against current
 public Lichess and Chess.com markup. They prefer complete FEN values and use a

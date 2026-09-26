@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { PositionFeaturesResponse } from "@chess-assistant/contracts";
 
 import {
+  evaluationPerspective,
   evaluationToWhitePercent,
+  formatCandidateIdea,
+  formatCentipawns,
   formatEvaluation,
   formatPlanHint,
   formatPositionThemes,
@@ -114,6 +117,36 @@ describe("formatEvaluation", () => {
   it("preserves the mate direction", () => {
     expect(formatEvaluation(null, 3)).toBe("M3");
     expect(formatEvaluation(null, -2)).toBe("-M2");
+  });
+});
+
+describe("centipawn perspective", () => {
+  it("keeps Stockfish's standard white point of view explicit", () => {
+    expect(formatCentipawns(73, null)).toBe("+73 cp");
+    expect(evaluationPerspective(73, null)).toBe("Brancas melhores");
+    expect(formatCentipawns(-41, null)).toBe("−41 cp");
+    expect(evaluationPerspective(-41, null)).toBe("Pretas melhores");
+  });
+});
+
+describe("formatCandidateIdea", () => {
+  it("joins a verified plan with the principal reply", () => {
+    expect(formatCandidateIdea({
+      rank: 1,
+      uci: "e2e4",
+      san: "e4",
+      facts: { occupies_center: true } as never,
+      plan_hints: ["contest_center"],
+      principal_variation_san: ["e4", "e5"],
+      opponent_replies: [{
+        uci: "e7e5",
+        san: "e5",
+        score_cp: 20,
+        mate: null,
+        pv_uci: ["e7e5"],
+        pv_san: ["e5"],
+      }],
+    })).toBe("Ideia: disputar o centro. Resposta principal: e5.");
   });
 });
 

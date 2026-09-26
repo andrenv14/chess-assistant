@@ -170,4 +170,17 @@ describe("resolveBackendInvocation", () => {
       expect.arrayContaining(["-m", "uvicorn", "app.main:app"]),
     );
   });
+
+  it("passes an isolated port to the development backend", () => {
+    const invocation = resolveBackendInvocation(
+      "backend",
+      "python-custom",
+      () => false,
+      18766,
+    );
+
+    expect(invocation.args).toEqual(
+      expect.arrayContaining(["--port", "18766"]),
+    );
+  });
 });

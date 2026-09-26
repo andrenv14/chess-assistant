@@ -192,6 +192,38 @@ async def explain_position(request: AnalyzeRequest) -> ExplainedAnalysisResponse
         raise HTTPException(status_code=500, detail="Explanation generation failed") from exc
 
 
+@app.post("/api/explain/evidence", response_model=ExplainedAnalysisResponse)
+async def explain_existing_evidence(
+    evidence: AnalysisEvidenceResponse,
+) -> ExplainedAnalysisResponse:
+    """Explain a result already calculated by this local application.
+
+    The desktop uses this route immediately after ``/api/evidence`` so asking
+    for prose never repeats the expensive Stockfish search. The original
+    ``/api/explain`` route remains useful for atomic API clients.
+    """
+    if explanation_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM is not configured. Set LLM_API_KEY and LLM_MODEL.",
+        )
+    try:
+        explanation = await explanation_service.explain(evidence)
+        return ExplainedAnalysisResponse(evidence=evidence, explanation=explanation)
+    except (ExplanationProviderError, ExplanationValidationError) as exc:
+        logger.warning(
+            "explanation_rejected",
+            extra={"event_data": {"reason": type(exc).__name__}},
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="LLM explanation was unavailable or invalid",
+        ) from exc
+    except Exception as exc:
+        logger.exception("existing_evidence_explanation_failed")
+        raise HTTPException(status_code=500, detail="Explanation generation failed") from exc
+
+
 @app.post("/api/classify", response_model=MoveClassificationResponse)
 async def classify_move(request: ClassifyMoveRequest) -> MoveClassificationResponse:
     try:
@@ -271,7 +303,7 @@ async def extension_socket(websocket: WebSocket) -> None:
             except ValidationError as exc:
                 await websocket.send_json({"type": "error", "detail": str(exc)})
                 continue
-            await hub.broadcast(event.model_dump(mode="json"))
+            await hub.broadcast(event.model_dump(mode="json", exclude_none=True))
             await websocket.send_json({"type": "ack", "at": event.at})
     except WebSocketDisconnect:
         return

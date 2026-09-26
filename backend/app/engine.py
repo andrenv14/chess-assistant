@@ -139,14 +139,15 @@ class StockfishManager:
         infos = raw if isinstance(raw, list) else [raw]
         candidates = [self._move_analysis(board, info) for info in infos if info.get("pv")]
 
-        if request.include_replies and self.profiles[reply_role].enabled:
+        if request.include_replies:
+            # MultiPV already contains the opponent's strongest response in every
+            # principal variation. Reuse that result instead of launching one
+            # additional full engine search per candidate. Besides being much
+            # faster, this keeps the displayed defence exactly aligned with the
+            # line and score the user is looking at.
             for candidate in candidates:
-                after_move = board.copy()
-                move = chess.Move.from_uci(candidate.uci)
-                if move not in after_move.legal_moves:
-                    continue
-                after_move.push(move)
-                candidate.replies = self._replies(after_move, reply_role)
+                reply = self._principal_reply(board, candidate)
+                candidate.replies = [reply] if reply is not None else []
 
         evaluation_cp: int | None = candidates[0].score_cp if candidates else None
         evaluation_mate: int | None = candidates[0].mate if candidates else None
@@ -286,12 +287,31 @@ class StockfishManager:
         )
         return response
 
-    def _replies(self, board: chess.Board, role: EngineRole) -> list[ReplyAnalysis]:
-        profile = self.profiles[role]
-        engine = self._get_engine(role)
-        raw = engine.analyse(board, self._limit(profile), multipv=profile.multipv)
-        infos = raw if isinstance(raw, list) else [raw]
-        return [self._reply_analysis(board, info) for info in infos if info.get("pv")]
+    @staticmethod
+    def _principal_reply(
+        board: chess.Board,
+        candidate: MoveAnalysis,
+    ) -> ReplyAnalysis | None:
+        if len(candidate.pv_uci) < 2:
+            return None
+
+        after_candidate = board.copy(stack=False)
+        first_move = chess.Move.from_uci(candidate.pv_uci[0])
+        if first_move not in after_candidate.legal_moves:
+            return None
+        after_candidate.push(first_move)
+
+        reply_move = chess.Move.from_uci(candidate.pv_uci[1])
+        if reply_move not in after_candidate.legal_moves:
+            return None
+        return ReplyAnalysis(
+            uci=reply_move.uci(),
+            san=after_candidate.san(reply_move),
+            score_cp=candidate.score_cp,
+            mate=candidate.mate,
+            pv_uci=candidate.pv_uci[1:],
+            pv_san=candidate.pv_san[1:],
+        )
 
     def _move_analysis(self, board: chess.Board, info: dict[str, Any]) -> MoveAnalysis:
         reply = self._reply_analysis(board, info)

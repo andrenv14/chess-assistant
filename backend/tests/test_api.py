@@ -4,6 +4,7 @@ import chess
 import pytest
 from fastapi.testclient import TestClient
 
+from app.evidence import build_analysis_evidence
 from app.explanations import ExplanationProviderError
 from app.main import app, maia_manager, manager
 from app.models import AnalyzeResponse, MoveAnalysis, PositionExplanation, default_profiles
@@ -272,6 +273,24 @@ def test_explanation_returns_matching_evidence_and_prose(monkeypatch) -> None:
     payload = response.json()
     assert payload["evidence"]["analysis"]["candidates"][0]["uci"] == "g1f3"
     assert payload["explanation"]["candidates"][0]["uci"] == "g1f3"
+
+
+def test_existing_evidence_explanation_does_not_run_stockfish_again(monkeypatch) -> None:
+    async def fail_if_analyzed(_request):
+        raise AssertionError("Stockfish analysis must not be repeated")
+
+    evidence = build_analysis_evidence(_analysis_for_starting_position())
+    monkeypatch.setattr(manager, "analyze", fail_if_analyzed)
+    monkeypatch.setattr("app.main.explanation_service", StubExplanationService())
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/explain/evidence",
+            json=evidence.model_dump(mode="json"),
+        )
+
+    assert response.status_code == 200
+    assert response.json()["evidence"]["analysis"]["fen"] == chess.STARTING_FEN
 
 
 class FailingExplanationService:

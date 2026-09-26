@@ -11,6 +11,7 @@ from app.models import (
     PlanHint,
     PositionFeaturesResponse,
 )
+from app.repertoire import match_repertoire
 
 logger = get_logger(__name__)
 CENTER_SQUARES = {chess.D4, chess.E4, chess.D5, chess.E5}
@@ -57,6 +58,7 @@ def build_analysis_evidence(analysis: AnalyzeResponse) -> AnalysisEvidenceRespon
         analysis=analysis,
         position=position,
         candidates=candidates,
+        repertoire=match_repertoire(analysis.fen),
     )
 
 

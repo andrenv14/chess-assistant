@@ -58,3 +58,6 @@ renderer:
 
 The app icon source is `apps/desktop/build/icon.svg`. Electron Builder converts
 that vector source into the required Windows installer and executable sizes.
+The portfolio GIF is regenerated from the five 100% captures with
+`backend\.venv\Scripts\python.exe scripts\build-portfolio-demo.py`; Pillow is
+part of the backend's `dev` dependency group.

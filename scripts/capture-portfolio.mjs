@@ -12,6 +12,7 @@ const backend = path.join(root, "backend", "dist", "chess-assistant-backend", "c
 const renderer = path.join(root, "apps", "desktop", "dist-renderer", "index.html");
 const scale = Number(process.env.CHESS_ASSISTANT_QA_SCALE ?? "1");
 const suffix = scale === 1.5 ? "150" : "100";
+const backendPort = "18765";
 
 if (![1, 1.5].includes(scale)) throw new Error("CHESS_ASSISTANT_QA_SCALE must be 1 or 1.5");
 app.commandLine.appendSwitch("force-device-scale-factor", String(scale));
@@ -21,7 +22,11 @@ await mkdir(qaData, { recursive: true });
 
 const backendProcess = spawn(backend, [], {
   cwd: path.dirname(backend),
-  env: { ...process.env, LOCALAPPDATA: qaData },
+  env: {
+    ...process.env,
+    LOCALAPPDATA: qaData,
+    CHESS_ASSISTANT_PORT: backendPort,
+  },
   stdio: "ignore",
   windowsHide: true,
 });
@@ -68,7 +73,7 @@ async function run() {
  try {
   await waitFor(async () => {
     try {
-      return (await fetch("http://127.0.0.1:8765/health")).ok;
+      return (await fetch(`http://127.0.0.1:${backendPort}/health`)).ok;
     } catch {
       return false;
     }
@@ -82,7 +87,7 @@ async function run() {
     backgroundColor: "#11130f",
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
-  await window.loadFile(renderer);
+  await window.loadFile(renderer, { query: { backendPort } });
   await waitFor(
     () => window.webContents.executeJavaScript("document.body.innerText.includes('Analisar agora')"),
     "renderer",

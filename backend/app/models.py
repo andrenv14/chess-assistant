@@ -136,6 +136,19 @@ class OpeningInfo(BaseModel):
     source: Literal["lichess-chess-openings"] = "lichess-chess-openings"
 
 
+class RepertoireKnowledge(BaseModel):
+    id: Literal["london", "sicilian_e6", "kings_indian"]
+    name: str
+    side: Literal["white", "black"]
+    eco_range: str
+    summary: str
+    plans_for_us: list[str]
+    opponent_plans: list[str]
+    tactical_themes: list[str]
+    traps: list[str]
+    sample_lines: list[str]
+
+
 class AnalyzeResponse(BaseModel):
     fen: str
     actor: Actor
@@ -373,6 +386,7 @@ class AnalysisEvidenceResponse(BaseModel):
     analysis: AnalyzeResponse
     position: PositionFeaturesResponse
     candidates: list[CandidateEvidence]
+    repertoire: RepertoireKnowledge | None = None
 
 
 class AnalysisHistorySummary(BaseModel):
@@ -441,6 +455,7 @@ class ExplainedAnalysisResponse(BaseModel):
 class BrowserPositionEvent(BaseModel):
     type: Literal["position"]
     fen: str
+    orientation: Literal["white", "black"] | None = None
     source: Literal[
         "lichess-analysis",
         "lichess-live",

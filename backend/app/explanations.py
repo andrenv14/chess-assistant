@@ -105,6 +105,20 @@ def _position_supports(evidence: AnalysisEvidenceResponse) -> list[dict[str, str
     if evidence.analysis.opening:
         opening = evidence.analysis.opening
         statements.append(f"A abertura identificada é {opening.eco}: {opening.name}.")
+    if evidence.repertoire:
+        repertoire = evidence.repertoire
+        statements.extend(
+            [
+                f"A posição corresponde ao repertório focado {repertoire.name}: "
+                + repertoire.summary,
+                "Planos do repertório para o nosso lado: "
+                + " ".join(repertoire.plans_for_us[:3]),
+                "Planos críticos do adversário: "
+                + " ".join(repertoire.opponent_plans[:2]),
+                "Temas táticos do repertório: "
+                + " ".join(repertoire.tactical_themes[:2]),
+            ]
+        )
 
     tactics = position.tactics
     if tactics.side_to_move_in_check:

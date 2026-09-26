@@ -161,7 +161,7 @@ describe("PositionReader live boards", () => {
       const reader = new PositionReader();
       document.body.innerHTML = lichessBoard(PIECES, [], orientation);
       const position = reader.read(document, "lichess.org", "/tv");
-      expect(position).toEqual({ fen: STARTING_FEN, source: "lichess-live" });
+      expect(position).toEqual({ fen: STARTING_FEN, source: "lichess-live", orientation });
     }
   });
 

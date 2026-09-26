@@ -141,6 +141,24 @@ interface BoardSnapshot {
   lastMoveSquares: string[];
 }
 
+export function boardOrientation(
+  root: ParentNode,
+  source: AnalysisSource,
+): "white" | "black" {
+  if (source.startsWith("lichess")) {
+    const wrap = root.querySelector(".cg-wrap");
+    return wrap?.classList.contains("orientation-black") ? "black" : "white";
+  }
+
+  const board = root.querySelector(
+    "wc-chess-board.board, wc-chess-board, chess-board.board, #board-layout-analysis",
+  );
+  const flipped = board?.classList.contains("flipped")
+    || board?.getAttribute("flipped") === "true"
+    || board?.getAttribute("boardisflipped") === "true";
+  return flipped ? "black" : "white";
+}
+
 function chessComSnapshot(root: ParentNode): BoardSnapshot | null {
   const board = root.querySelector("wc-chess-board.board, wc-chess-board, chess-board.board");
   if (!board) return null;
@@ -301,7 +319,7 @@ export class PositionReader {
     root: ParentNode = document,
     hostname: string = location.hostname,
     pathname: string = location.pathname,
-  ): { fen: string; source: AnalysisSource } | null {
+  ): { fen: string; source: AnalysisSource; orientation: "white" | "black" } | null {
     const source = sourceForLocation(hostname, pathname);
     if (!source) {
       this.reset();
@@ -312,12 +330,13 @@ export class PositionReader {
       this.pendingPlacement = null;
     }
     this.previousSource = source;
+    const orientation = boardOrientation(root, source);
 
     const exposedFen = directFen(root, source);
     if (exposedFen) {
       this.previousFen = exposedFen;
       this.pendingPlacement = null;
-      return { fen: exposedFen, source };
+      return { fen: exposedFen, source, orientation };
     }
 
     const snapshot = source.startsWith("chesscom")
@@ -327,7 +346,7 @@ export class PositionReader {
     const placement = placementFromPieces(snapshot.pieces);
     if (this.previousFen?.split(" ")[0] === placement) {
       this.pendingPlacement = null;
-      return { fen: this.previousFen, source };
+      return { fen: this.previousFen, source, orientation };
     }
     const tracked = this.previousFen ? legalSuccessor(this.previousFen, placement) : null;
     if (!tracked && placement !== STARTING_PLACEMENT && this.pendingPlacement !== placement) {
@@ -340,7 +359,7 @@ export class PositionReader {
     if (!isFen(fen)) return null;
     this.previousFen = fen;
     this.pendingPlacement = null;
-    return { fen, source };
+    return { fen, source, orientation };
   }
 
   reset(): void {

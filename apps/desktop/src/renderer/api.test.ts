@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   clearAnalysisHistory,
+  explainEvidence,
   explainPosition,
   getAnalysisHistoryItem,
   listAnalysisHistory,
@@ -70,6 +71,31 @@ describe("explainPosition", () => {
         include_replies: true,
       }),
     ).rejects.toThrow("LLM explanation was unavailable or invalid");
+  });
+});
+
+describe("explainEvidence", () => {
+  it("reuses the evidence already returned by the backend", async () => {
+    const evidence = {
+      analysis: { fen: "test-fen", candidates: [] },
+      position: { fen: "test-fen" },
+      candidates: [],
+      repertoire: null,
+    } as never;
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ evidence, explanation: { candidates: [] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await explainEvidence(evidence);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8765/api/explain/evidence",
+      expect.objectContaining({ method: "POST", body: JSON.stringify(evidence) }),
+    );
   });
 });
 

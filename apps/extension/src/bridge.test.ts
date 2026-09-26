@@ -106,6 +106,8 @@ describe("isBrowserEvent", () => {
   it("rejects malformed runtime messages", () => {
     expect(isBrowserEvent(FIRST)).toBe(true);
     expect(isBrowserEvent({ ...FIRST, source: "chesscom-live" })).toBe(true);
+    expect(isBrowserEvent({ ...FIRST, orientation: "black" })).toBe(true);
+    expect(isBrowserEvent({ ...FIRST, orientation: "sideways" })).toBe(false);
     expect(isBrowserEvent({ ...FIRST, source: "unknown" })).toBe(false);
     expect(isBrowserEvent({ ...FIRST, at: "not-a-date" })).toBe(false);
     expect(isBrowserEvent({ ...FIRST, fen: "not-a-fen" })).toBe(false);

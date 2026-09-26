@@ -1,23 +1,37 @@
+import bB from "./assets/pieces/chessnut/bB.svg";
+import bK from "./assets/pieces/chessnut/bK.svg";
+import bN from "./assets/pieces/chessnut/bN.svg";
+import bP from "./assets/pieces/chessnut/bP.svg";
+import bQ from "./assets/pieces/chessnut/bQ.svg";
+import bR from "./assets/pieces/chessnut/bR.svg";
+import wB from "./assets/pieces/chessnut/wB.svg";
+import wK from "./assets/pieces/chessnut/wK.svg";
+import wN from "./assets/pieces/chessnut/wN.svg";
+import wP from "./assets/pieces/chessnut/wP.svg";
+import wQ from "./assets/pieces/chessnut/wQ.svg";
+import wR from "./assets/pieces/chessnut/wR.svg";
+
 type Orientation = "white" | "black";
 
 type ParsedPiece = {
   color: "white" | "black";
-  symbol: string;
+  asset: string;
+  name: string;
 };
 
 const PIECES: Record<string, ParsedPiece> = {
-  K: { color: "white", symbol: "♔" },
-  Q: { color: "white", symbol: "♕" },
-  R: { color: "white", symbol: "♖" },
-  B: { color: "white", symbol: "♗" },
-  N: { color: "white", symbol: "♘" },
-  P: { color: "white", symbol: "♙" },
-  k: { color: "black", symbol: "♚" },
-  q: { color: "black", symbol: "♛" },
-  r: { color: "black", symbol: "♜" },
-  b: { color: "black", symbol: "♝" },
-  n: { color: "black", symbol: "♞" },
-  p: { color: "black", symbol: "♟" },
+  K: { color: "white", asset: wK, name: "rei branco" },
+  Q: { color: "white", asset: wQ, name: "dama branca" },
+  R: { color: "white", asset: wR, name: "torre branca" },
+  B: { color: "white", asset: wB, name: "bispo branco" },
+  N: { color: "white", asset: wN, name: "cavalo branco" },
+  P: { color: "white", asset: wP, name: "peão branco" },
+  k: { color: "black", asset: bK, name: "rei preto" },
+  q: { color: "black", asset: bQ, name: "dama preta" },
+  r: { color: "black", asset: bR, name: "torre preta" },
+  b: { color: "black", asset: bB, name: "bispo preto" },
+  n: { color: "black", asset: bN, name: "cavalo preto" },
+  p: { color: "black", asset: bP, name: "peão preto" },
 };
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -110,9 +124,13 @@ export function ChessBoard({
               {column === 0 && <small className="chessboard__rank">{rank}</small>}
               {row === 7 && <small className="chessboard__file">{file}</small>}
               {piece && (
-                <span className={`chessboard__piece chessboard__piece--${piece.color}`}>
-                  {piece.symbol}
-                </span>
+                <img
+                  alt=""
+                  aria-label={piece.name}
+                  className={`chessboard__piece chessboard__piece--${piece.color}`}
+                  draggable={false}
+                  src={piece.asset}
+                />
               )}
             </div>
           );

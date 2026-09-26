@@ -60,14 +60,17 @@ bounded timeout and retry a
 network failure at most once. The service then performs the additional
 chess-specific UCI/order/grounding validation.
 
-The default model is `google/gemini-3.8-flash`. Model and gateway remain
-configuration values and can be changed without altering the chess contracts.
+The default model is [`google/gemini-3.1-flash-lite`](https://openrouter.ai/google/gemini-3.1-flash-lite).
+It was selected for low latency and cost while retaining JSON-schema structured
+output. Model and gateway remain configuration values and can be changed without
+altering the chess contracts.
 Logs contain model, gateway and token counts, but never prompts or responses.
 
-`POST /api/explain` returns the evidence and its explanation together. The
-desktop replaces its displayed candidate list with that exact evidence before
-showing the prose, so a second time-limited engine run cannot attach text to a
-different line.
+`POST /api/explain` returns the evidence and its explanation together for API
+clients that want one atomic request. The desktop uses
+`POST /api/explain/evidence` instead: it submits the evidence already visible
+on screen, so asking for prose never starts a second Stockfish calculation and
+cannot attach text to a different time-limited line.
 
 Copy `backend/.env.example` to `backend/.env` and set `LLM_API_KEY`. No key,
 prompt, full FEN or provider response is committed or logged.
@@ -75,8 +78,8 @@ prompt, full FEN or provider response is committed or logged.
 ## Real-provider smoke test
 
 `backend/scripts/smoke_llm.py` runs a single paid request for a fixed Ruy Lopez
-position. It starts native Stockfish, produces three candidate lines and two
-responses per candidate, builds deterministic evidence and validates the model
+position. It starts native Stockfish, produces three candidate lines with the
+principal opponent response from each PV, builds deterministic evidence and validates the model
 output against the same production schema and candidate order.
 
 Set `LLM_API_KEY`, `LLM_API_BASE_URL` and `LLM_MODEL` only in the current shell,

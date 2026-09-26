@@ -8,7 +8,14 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 let backendController: BackendController | null = null;
 let shutdownStarted = false;
 
-function createWindow(): void {
+function configuredBackendPort(): number {
+  const candidate = Number(process.env.CHESS_ASSISTANT_PORT ?? "8765");
+  return Number.isInteger(candidate) && candidate >= 1024 && candidate <= 65_535
+    ? candidate
+    : 8765;
+}
+
+function createWindow(backendPort: number): void {
   const window = new BrowserWindow({
     width: 1180,
     height: 820,
@@ -26,13 +33,18 @@ function createWindow(): void {
 
   const developmentUrl = process.env.VITE_DEV_SERVER_URL;
   if (developmentUrl) {
-    void window.loadURL(developmentUrl);
+    const url = new URL(developmentUrl);
+    url.searchParams.set("backendPort", String(backendPort));
+    void window.loadURL(url.toString());
   } else {
-    void window.loadFile(path.join(directory, "../dist-renderer/index.html"));
+    void window.loadFile(path.join(directory, "../dist-renderer/index.html"), {
+      query: { backendPort: String(backendPort) },
+    });
   }
 }
 
 app.whenReady().then(async () => {
+  const backendPort = configuredBackendPort();
   const backendDirectory = process.env.CHESS_ASSISTANT_BACKEND_DIR
     ? path.resolve(process.env.CHESS_ASSISTANT_BACKEND_DIR)
     : app.isPackaged
@@ -42,6 +54,8 @@ app.whenReady().then(async () => {
   try {
     backendController = await ensureBackend({
       backendDirectory,
+      healthUrl: `http://127.0.0.1:${backendPort}/health`,
+      port: backendPort,
       pythonPath: process.env.CHESS_ASSISTANT_PYTHON,
     });
   } catch (error) {
@@ -52,9 +66,9 @@ app.whenReady().then(async () => {
     );
   }
 
-  createWindow();
+  createWindow(backendPort);
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) createWindow(backendPort);
   });
 });
 
