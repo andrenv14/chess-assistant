@@ -7,6 +7,8 @@ Chess.com e Lichess. O projeto separa a leitura do
 tabuleiro, a interface desktop e os motores nativos para que cada parte possa evoluir
 sem depender das demais.
 
+![Demonstração do Chess Assistant](docs/assets/portfolio/chess-assistant-demo.gif)
+
 ## Primeiro marco
 
 - app desktop em Electron + React com FEN, evalbar, variantes e respostas;
@@ -129,6 +131,18 @@ npm run package:dir
 Depois da verificação do diretório, `npm run package:win` gera o instalador
 NSIS. O procedimento completo e o checklist de publicação estão em
 [`docs/PACKAGING.md`](docs/PACKAGING.md).
+
+Verificações reproduzíveis de acabamento:
+
+```powershell
+npm run qa:installer       # instala, valida renderer/backend e desinstala
+npm run qa:live-extension  # extensão compilada → WebSocket → backend
+npm run qa:portfolio       # screenshots do Electron e Stockfish reais
+npm run verify:signature   # inspeciona Authenticode do instalador
+```
+
+A demonstração visual pronta para o portfólio está em
+[`docs/assets/portfolio/chess-assistant-demo.gif`](docs/assets/portfolio/chess-assistant-demo.gif).
 
 ## API do primeiro marco
 

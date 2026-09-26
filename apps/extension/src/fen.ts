@@ -60,6 +60,11 @@ const SITE_FEN_SELECTORS: Partial<Record<AnalysisSource, string[]>> = {
 
 export function sourceForLocation(hostname: string, pathname: string): AnalysisSource | null {
   const normalized = hostname.toLowerCase();
+  if (normalized === "127.0.0.1" && pathname.startsWith("/qa/")) {
+    if (pathname === "/qa/lichess/analysis") return "lichess-analysis";
+    if (pathname === "/qa/chesscom/analysis") return "chesscom-analysis";
+    return null;
+  }
   if (normalized === "lichess.org" || normalized.endsWith(".lichess.org")) {
     if (/^\/(?:[a-z]{2}\/)?analysis(?:\/|$)/i.test(pathname)) return "lichess-analysis";
     const localizedPath = pathname.replace(/^\/[a-z]{2}(?=\/)/i, "");

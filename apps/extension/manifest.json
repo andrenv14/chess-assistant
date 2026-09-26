@@ -4,7 +4,11 @@
   "version": "0.1.0",
   "description": "Envia posições de análise e partidas para o assistente local.",
   "permissions": ["storage"],
-  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "https://lichess.org/*",
+    "https://www.chess.com/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -17,7 +21,8 @@
     {
       "matches": [
         "https://lichess.org/*",
-        "https://www.chess.com/*"
+        "https://www.chess.com/*",
+        "http://127.0.0.1/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

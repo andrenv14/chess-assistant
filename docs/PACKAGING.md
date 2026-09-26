@@ -59,6 +59,21 @@ keys. User data continues to live under `%LOCALAPPDATA%\ChessAssistant`.
 Current local artifacts are not code-signed with a trusted publisher
 certificate, so Windows SmartScreen may warn until release signing is added.
 
+## Trusted signing
+
+The manual `Signed Windows release` GitHub Actions workflow is ready for an
+Authenticode code-signing certificate. Configure these repository secrets:
+
+- `WINDOWS_CSC_LINK`: a base64-encoded PFX or a private HTTPS download URL;
+- `WINDOWS_CSC_KEY_PASSWORD`: the PFX password.
+
+Electron Builder consumes them through `CSC_LINK` and `CSC_KEY_PASSWORD`. The
+workflow then runs `scripts/verify-signature.ps1 -RequireTrusted` and refuses to
+publish an unsigned or invalid artifact. Local builds can inspect their state
+with `npm run verify:signature`; `NotSigned` is expected until a real publisher
+certificate is supplied. A self-signed certificate is intentionally not used,
+because it would not remove SmartScreen warnings or establish publisher trust.
+
 ## Upgrade and uninstall behavior
 
 The stable `appId` (`dev.andrenv14.chessassistant`) gives NSIS a deterministic
@@ -89,6 +104,12 @@ Before publishing an installer:
 5. load the extension separately and verify Lichess and Chess.com Analysis;
 6. uninstall the desktop app and confirm user data behavior is documented for
    that release.
+
+The automated `npm run qa:installer` check now performs items 2, 3 and 6 in an
+isolated data directory on the current Windows host. It also connects to the
+installed Electron renderer through its temporary debugging port and requires
+the React interface to mount from `file://` assets. A disposable VM remains the
+final independent clean-machine check.
 
 The browser extension remains a separate unpacked artifact in this milestone;
 loading or publishing it is intentionally not hidden inside the desktop

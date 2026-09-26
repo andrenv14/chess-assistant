@@ -17,7 +17,11 @@
     "build:extension": "npm run build --workspace @chess-assistant/extension",
     "package:backend": "pwsh -NoProfile -File ./scripts/build-backend.ps1",
     "package:win": "npm run package:backend && npm run package:win --workspace @chess-assistant/desktop",
-    "package:dir": "npm run package:backend && npm run package:dir --workspace @chess-assistant/desktop"
+    "package:dir": "npm run package:backend && npm run package:dir --workspace @chess-assistant/desktop",
+    "qa:portfolio": "electron scripts/capture-portfolio.mjs",
+    "qa:live-extension": "electron scripts/smoke-live-extension.mjs",
+    "qa:installer": "pwsh -NoProfile -File ./scripts/smoke-installer.ps1",
+    "verify:signature": "pwsh -NoProfile -File ./scripts/verify-signature.ps1"
   },
   "engines": {
     "node": ">=22"

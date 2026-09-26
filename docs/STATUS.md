@@ -6,9 +6,9 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **98%**;
-- portfolio-ready release: **94%**;
-- full intended product: **93%**.
+- local analysis core: **99%**;
+- portfolio-ready release: **97%**;
+- full intended product: **95%**.
 
 The core percentage is higher because native Stockfish analysis, independent
 runtime profiles, move classification, opening lookup, deterministic evidence,
@@ -36,6 +36,9 @@ the extension is still loaded unpacked.
 - deterministic weak squares, stable and occupied outposts, pawn-controlled
   space, wing majorities, restricted bishops, open-file rooks and seventh-rank
   rooks;
+- strict backward-pawn evidence, dominant pawn color complexes, overloaded
+  defenders, queen/minor/rook-and-minor endgames and the wrong-bishop rook-pawn
+  fortress motif;
 - candidate evidence for pawn breaks, outpost creation/occupation, rook
   activation, space gain, restricted-piece improvement, endgame king
   centralization, defender removal, line interference and connected rooks;
@@ -74,6 +77,8 @@ the extension is still loaded unpacked.
   health, visually and contractually separated from the Stockfish evaluation;
 - browser QA at desktop and tablet widths for the analysis cockpit and PV
   navigation;
+- automated packaged-renderer captures at Windows 100% and 150% scale for all
+  five portfolio views, plus a generated animated demonstration;
 - automatic live-position analysis with an end-to-end mocked WebSocket UI test;
 - TypeScript contracts, structured redacted logs and engineering documentation;
 - local Ruff, Pytest, Vitest, typecheck and production builds;
@@ -83,24 +88,27 @@ the extension is still loaded unpacked.
   the official Stockfish binary, license and corresponding source;
 - reproducible unpacked Electron and NSIS installer builds, plus a packaged
   backend smoke test and a successful real analysis launched by the final app;
+- successful silent NSIS install on the development Windows host, verified
+  React mount from `file://`, embedded Stockfish analysis, 3,815 openings and
+  clean uninstall in an isolated data directory;
+- compiled MV3 extension loaded through Chromium's official extension API and
+  verified end to end for both site adapters through the real service worker,
+  local WebSocket and packaged backend;
+- signed-release workflow and strict Authenticode verifier ready for a real
+  publisher certificate;
 - original vector application icon converted by the Windows packaging pipeline;
 
 ## Required before calling it portfolio-ready
 
-1. Expand the successful real-provider smoke test into a fixed regression set
+1. Expand the successful real-provider smoke test into a fixed paid regression set
    covering tactics, strategy, endgames and forced mates.
-2. Exercise the built extension and desktop app together in installed form on
-   analysis, bot, friend and matchmaking pages on both sites, plus 100%/150%
-   Windows display scaling.
-3. Expand the fixed native-Stockfish classification corpus with more defensive
-   only-move, missed-win and depth-sensitive positions.
-4. Expand the new high-level layer into backward pawns, color-complex strategy,
-   overloaded pieces, attraction/deflection sequences and more specialized
-   theoretical endgames.
-5. Exercise the generated Windows installer on a clean machine and add trusted
-   code signing.
-6. Add a short scripted portfolio demo and screenshot set from an installed
-   build.
+2. Repeat the successful installed-host checks in a disposable clean Windows
+   VM and exercise authenticated bot, friend and matchmaking routes on both
+   sites as their DOM changes over time.
+3. Add attraction/deflection sequences that are proved across multiple PV plies
+   and expand the native corpus with more depth-sensitive historical positions.
+4. Supply a trusted Authenticode publisher certificate to the prepared release
+   workflow. Local self-signing is deliberately not counted as completion.
 
 Maia-3 is outside the critical path. It remains optional and can never change
 Stockfish candidates, evaluation, rank or post-move classification.

@@ -8,9 +8,14 @@ describe("supported-site permissions", () => {
 
     expect(matches).toContain("https://lichess.org/*");
     expect(matches).toContain("https://www.chess.com/*");
+    expect(matches).toContain("http://127.0.0.1/*");
   });
 
-  it("keeps backend access local-only", () => {
-    expect(manifest.host_permissions).toEqual(["http://127.0.0.1:8765/*"]);
+  it("declares only the local bridge and the two supported chess sites", () => {
+    expect(manifest.host_permissions).toEqual([
+      "http://127.0.0.1/*",
+      "https://lichess.org/*",
+      "https://www.chess.com/*",
+    ]);
   });
 });

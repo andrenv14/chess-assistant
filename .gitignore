@@ -4,6 +4,7 @@ dist-electron/
 dist-renderer/
 release/
 .vite/
+.qa/
 
 .venv/
 __pycache__/
