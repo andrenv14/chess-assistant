@@ -15,6 +15,11 @@ development watcher explicitly ignores `release` and `dist-electron`, so a
 running renderer does not lock packaging output while Electron Builder replaces
 it.
 
+Both packaging commands invoke Electron's own idempotent installer first. It is
+a no-op when the matching runtime is present and restores `electronDist` when a
+clean or security-hardened `npm ci` installed package metadata without running
+the dependency's download hook.
+
 The desktop process prefers the packaged `chess-assistant-backend.exe`. A
 Python/uvicorn launch remains the development fallback, and
 `CHESS_ASSISTANT_PYTHON` can still force a diagnostic runtime.
