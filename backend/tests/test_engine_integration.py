@@ -42,6 +42,7 @@ def test_real_stockfish_analyzes_candidates_and_replies() -> None:
             result = await manager.analyze(
                 AnalyzeRequest(fen=chess.STARTING_FEN, include_replies=True)
             )
+            objective = await manager.evaluate(chess.STARTING_FEN)
         finally:
             await manager.close()
 
@@ -56,6 +57,8 @@ def test_real_stockfish_analyzes_candidates_and_replies() -> None:
             item.uci for item in result.candidates
         ]
         assert evidence.position.phase == "opening"
+        assert objective.role == "evaluator"
+        assert objective.evaluation_cp is not None or objective.evaluation_mate is not None
 
     asyncio.run(scenario())
 

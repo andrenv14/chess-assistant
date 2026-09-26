@@ -27,6 +27,17 @@ real local Python service, requires the application-specific health identity and
 working temporary SQLite storage, verifies extension-to-desktop WebSocket
 forwarding plus acknowledgement, and then stops only the process it created.
 
+Host-dependent latency can be audited separately with the real configured
+engine. The benchmark reports cold and warm candidate time, selected-defence
+time and time-to-candidates while classification is running:
+
+```powershell
+backend\.venv\Scripts\python.exe scripts\benchmark-engine.py
+```
+
+It emits JSON, does not read the LLM credential and is evidence for comparison,
+not a hardware-independent performance promise.
+
 ## Testing strategy
 
 - Pytest covers models, chess rules, expected-points and evidence-backed special

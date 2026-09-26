@@ -31,8 +31,9 @@ sem depender das demais.
 - perfis e histórico recente persistidos localmente em SQLite.
 - repertório especializado em London, Siciliana Kan/Taimanov e Índia do Rei,
   com planos, contrajogo, temas táticos, armadilhas e linhas-modelo locais;
-- análise inicial rápida: as respostas são reaproveitadas da própria variante
-  principal e o conhecimento determinístico chega sem esperar a prosa da LLM.
+- análise progressiva: candidatos e conhecimento aparecem primeiro; a defesa
+  da linha selecionada usa o perfil independente do oponente e a barra recebe
+  depois a avaliação objetiva, sem bloquear a interface nem a prosa da LLM.
 
 ## Arquitetura
 
@@ -62,9 +63,9 @@ O backend descobre essa instalação automaticamente. Como alternativa, defina o
 caminho de outro motor copiando `backend/.env.example` para `backend/.env` e
 ajustando `STOCKFISH_PATH`.
 
-As explicações usam uma API externa opcional. O exemplo configura
-`google/gemini-3.1-flash-lite` via OpenRouter: é a opção padrão de baixa latência
-e baixo custo para a saída estruturada deste app. A chave permanece somente no
+As explicações usam uma API externa opcional. O exemplo recomenda
+`google/gemini-3.1-flash-lite` via OpenRouter como opção de baixa latência e
+baixo custo para a saída estruturada deste app. A chave permanece somente no
 arquivo local ignorado pelo Git ou no ambiente do processo.
 
 Maia-3 é opcional e mais pesado. Para instalar seu ambiente isolado sem baixar
@@ -150,6 +151,8 @@ npm run verify:signature   # inspeciona Authenticode do instalador
 
 A demonstração visual pronta para o portfólio está em
 [`docs/assets/portfolio/chess-assistant-demo.gif`](docs/assets/portfolio/chess-assistant-demo.gif).
+O case completo, com decisões, arquitetura, métricas e limites honestos, está
+em [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md).
 
 ## API do primeiro marco
 
@@ -158,6 +161,8 @@ A demonstração visual pronta para o portfólio está em
 - `PUT /api/settings/{role}` — muda força durante a sessão;
 - `POST /api/analyze` — calcula melhores lances e respostas;
 - `POST /api/evidence` — análise Stockfish enriquecida com planos verificáveis;
+- `POST /api/reply` — calcula a defesa selecionada com o perfil do outro lado;
+- `POST /api/evaluation` — atualiza a barra com o avaliador objetivo em segundo plano;
 - `POST /api/explain` — explicação estruturada via API, quando configurada;
 - `POST /api/explain/evidence` — explica evidências existentes sem recalcular o Stockfish;
 - `POST /api/classify` — reconstrói e classifica a jogada entre dois snapshots;
@@ -211,3 +216,5 @@ Exemplo de alteração de força:
 - [Repertório especializado](docs/REPERTOIRE.md)
 - [Experiência desktop, responsividade e acessibilidade](docs/UX.md)
 - [Centro de conhecimento e significado dos indicadores](docs/KNOWLEDGE_UI.md)
+- [Revisão de release: achados, correções e provas](docs/RELEASE_REVIEW.md)
+- [Case de portfólio](docs/PORTFOLIO.md)

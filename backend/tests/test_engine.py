@@ -1,10 +1,17 @@
+import asyncio
 from pathlib import Path
+from threading import Event
 
 import chess
 import chess.engine
 
 from app.engine import StockfishManager
-from app.models import AnalyzeRequest, ClassifyMoveRequest, EngineSettings
+from app.models import (
+    AnalyzeRequest,
+    CandidateReplyRequest,
+    ClassifyMoveRequest,
+    EngineSettings,
+)
 
 
 class FakeEngine:
@@ -80,14 +87,46 @@ class CountingAnalysisEngine(FakeEngine):
         ]
 
 
-def test_analysis_reuses_principal_variations_for_replies(monkeypatch) -> None:
+class CountingReplyEngine(FakeEngine):
+    def __init__(self) -> None:
+        super().__init__()
+        self.analysis_count = 0
+
+    def analyse(
+        self,
+        board: chess.Board,
+        _limit: chess.engine.Limit,
+        *,
+        multipv: int,
+    ) -> list[dict[str, object]]:
+        self.analysis_count += 1
+        assert multipv == 1
+        uci = "c7c5" if board.piece_at(chess.E4) else "g8f6"
+        return [
+            {
+                "pv": [chess.Move.from_uci(uci)],
+                "score": chess.engine.PovScore(chess.engine.Cp(18), chess.WHITE),
+            }
+        ]
+
+
+def test_analysis_uses_the_independent_reply_profile(monkeypatch) -> None:
     manager = StockfishManager(Path("unused-in-this-unit-test"))
-    engine = CountingAnalysisEngine()
+    advisor = CountingAnalysisEngine()
+    defender = CountingReplyEngine()
     manager.update_profile(
         "user",
         EngineSettings(move_time_ms=100, multipv=2),
     )
-    monkeypatch.setattr(manager, "_get_engine", lambda _role: engine)
+    manager.update_profile(
+        "opponent",
+        EngineSettings(move_time_ms=250, multipv=1, elo=1900),
+    )
+    monkeypatch.setattr(
+        manager,
+        "_get_engine",
+        lambda role: advisor if role == "user" else defender,
+    )
 
     result = manager._analyze_sync(
         AnalyzeRequest(
@@ -97,8 +136,69 @@ def test_analysis_reuses_principal_variations_for_replies(monkeypatch) -> None:
         )
     )
 
-    assert engine.analysis_count == 1
-    assert [candidate.replies[0].san for candidate in result.candidates] == ["e5", "d5"]
+    assert advisor.analysis_count == 1
+    assert defender.analysis_count == 2
+    assert [candidate.replies[0].san for candidate in result.candidates] == ["c5", "Nf6"]
+
+
+def test_selected_candidate_reply_uses_the_other_role(monkeypatch) -> None:
+    manager = StockfishManager(Path("unused-in-this-unit-test"))
+    defender = CountingReplyEngine()
+    monkeypatch.setattr(manager, "_get_engine", lambda role: defender)
+
+    result = manager._analyze_candidate_reply_sync(
+        CandidateReplyRequest(
+            fen=chess.STARTING_FEN,
+            actor="user",
+            candidate_uci="e2e4",
+        )
+    )
+
+    assert result.reply_role == "opponent"
+    assert result.reply is not None
+    assert result.reply.san == "c5"
+
+
+def test_evaluator_and_advisor_do_not_share_a_global_queue(monkeypatch, tmp_path) -> None:
+    async def scenario() -> list[bool]:
+        executable = tmp_path / "stockfish.exe"
+        executable.touch()
+        manager = StockfishManager(executable)
+        advisor_started = Event()
+        evaluator_started = Event()
+        overlapped: list[bool] = []
+
+        def analyze_sync(_request):
+            advisor_started.set()
+            overlapped.append(evaluator_started.wait(timeout=0.5))
+            return object()
+
+        def classify_sync(_request, *, is_book=False):
+            evaluator_started.set()
+            overlapped.append(advisor_started.wait(timeout=0.5))
+            return object()
+
+        monkeypatch.setattr(manager, "_analyze_sync", analyze_sync)
+        monkeypatch.setattr(manager, "_classify_move_sync", classify_sync)
+
+        board = chess.Board()
+        before = board.fen()
+        board.push_uci("e2e4")
+        await asyncio.gather(
+            manager.analyze(
+                AnalyzeRequest(
+                    fen=before,
+                    include_evaluator=False,
+                    include_replies=False,
+                )
+            ),
+            manager.classify_move(
+                ClassifyMoveRequest(before_fen=before, after_fen=board.fen())
+            ),
+        )
+        return overlapped
+
+    assert all(asyncio.run(scenario()))
 
 
 class FakeAnalysisEngine:

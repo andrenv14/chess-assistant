@@ -9,7 +9,8 @@ different API can be added later without changing the chess evidence contract.
 The prompt contains:
 
 - the Stockfish candidate order and evaluation anchors;
-- compact principal variations and configured opponent replies;
+- compact principal variations and independently configured opponent replies
+  when they have already been calculated for a selected candidate;
 - opening metadata when available;
 - deterministic position features;
 - candidate facts and language-neutral plan hints.
@@ -60,10 +61,10 @@ bounded timeout and retry a
 network failure at most once. The service then performs the additional
 chess-specific UCI/order/grounding validation.
 
-The default model is [`google/gemini-3.1-flash-lite`](https://openrouter.ai/google/gemini-3.1-flash-lite).
-It was selected for low latency and cost while retaining JSON-schema structured
-output. Model and gateway remain configuration values and can be changed without
-altering the chess contracts.
+The supplied environment example recommends `google/gemini-3.1-flash-lite` for
+low latency and cost while retaining JSON-schema structured output. Model and
+gateway remain configuration values and can be changed without altering the
+chess contracts.
 Logs contain model, gateway and token counts, but never prompts or responses.
 
 `POST /api/explain` returns the evidence and its explanation together for API
@@ -78,8 +79,8 @@ prompt, full FEN or provider response is committed or logged.
 ## Real-provider smoke test
 
 `backend/scripts/smoke_llm.py` runs a single paid request for a fixed Ruy Lopez
-position. It starts native Stockfish, produces three candidate lines with the
-principal opponent response from each PV, builds deterministic evidence and validates the model
+position. It starts native Stockfish, produces three candidate lines plus
+responses from the configured opposite-side engine, builds deterministic evidence and validates the model
 output against the same production schema and candidate order.
 
 Set `LLM_API_KEY`, `LLM_API_BASE_URL` and `LLM_MODEL` only in the current shell,

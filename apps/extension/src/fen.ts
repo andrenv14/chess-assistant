@@ -146,16 +146,33 @@ export function boardOrientation(
   source: AnalysisSource,
 ): "white" | "black" {
   if (source.startsWith("lichess")) {
-    const wrap = root.querySelector(".cg-wrap");
+    const selectors = [
+      ".round__app__board .cg-wrap",
+      ".main-board.cg-wrap",
+      ".analyse__board .cg-wrap",
+      ".puzzle__board .cg-wrap",
+      ".cg-wrap",
+    ];
+    const wrap = selectors
+      .map((selector) => root.querySelector(selector))
+      .find((candidate) => candidate !== null);
     return wrap?.classList.contains("orientation-black") ? "black" : "white";
   }
 
-  const board = root.querySelector(
-    "wc-chess-board.board, wc-chess-board, chess-board.board, #board-layout-analysis",
+  // Chess.com exposes the orientation on different nodes depending on the
+  // current UI (board in play pages, engine panel in analysis). Boolean HTML
+  // attributes can also be empty rather than the literal string "true".
+  const candidates = root.querySelectorAll(
+    "wc-chess-board.board, wc-chess-board, chess-board.board, "
+    + "#board-layout-analysis, [boardisflipped]",
   );
-  const flipped = board?.classList.contains("flipped")
-    || board?.getAttribute("flipped") === "true"
-    || board?.getAttribute("boardisflipped") === "true";
+  const flipped = [...candidates].some((candidate) => {
+    const flippedAttribute = candidate.getAttribute("flipped");
+    const boardAttribute = candidate.getAttribute("boardisflipped");
+    return candidate.classList.contains("flipped")
+      || (flippedAttribute !== null && flippedAttribute !== "false")
+      || (boardAttribute !== null && boardAttribute !== "false");
+  });
   return flipped ? "black" : "white";
 }
 

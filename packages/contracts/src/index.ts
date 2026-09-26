@@ -30,6 +30,17 @@ export interface ReplyAnalysis {
   pv_san: string[];
 }
 
+export interface CandidateReplyRequest {
+  fen: string;
+  actor: "user" | "opponent";
+  candidate_uci: string;
+}
+
+export interface CandidateReplyResponse extends CandidateReplyRequest {
+  reply_role: EngineRole;
+  reply: ReplyAnalysis | null;
+}
+
 export interface MoveAnalysis extends ReplyAnalysis {
   replies: ReplyAnalysis[];
 }
@@ -254,6 +265,13 @@ export interface EndgameFeatures {
 
 export interface PositionFeaturesRequest {
   fen: string;
+}
+
+export interface PositionEvaluationResponse {
+  fen: string;
+  evaluation_cp: number | null;
+  evaluation_mate: number | null;
+  role: "evaluator";
 }
 
 export interface PositionFeaturesResponse {

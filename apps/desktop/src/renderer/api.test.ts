@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  analyzeCandidateReply,
   clearAnalysisHistory,
+  evaluatePosition,
   explainEvidence,
   explainPosition,
   getAnalysisHistoryItem,
@@ -71,6 +73,59 @@ describe("explainPosition", () => {
         include_replies: true,
       }),
     ).rejects.toThrow("LLM explanation was unavailable or invalid");
+  });
+});
+
+describe("analyzeCandidateReply", () => {
+  it("requests one independently profiled defence without repeating MultiPV", async () => {
+    const response = {
+      fen: "test-fen",
+      actor: "user",
+      candidate_uci: "e2e4",
+      reply_role: "opponent",
+      reply: null,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(analyzeCandidateReply({
+      fen: "test-fen",
+      actor: "user",
+      candidate_uci: "e2e4",
+    })).resolves.toEqual(response);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8765/api/reply",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+});
+
+describe("evaluatePosition", () => {
+  it("requests a progressive full-strength evaluation", async () => {
+    const response = {
+      fen: "test-fen",
+      evaluation_cp: -35,
+      evaluation_mate: null,
+      role: "evaluator",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(evaluatePosition("test-fen")).resolves.toEqual(response);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8765/api/evaluation",
+      expect.objectContaining({ body: JSON.stringify({ fen: "test-fen" }) }),
+    );
   });
 });
 

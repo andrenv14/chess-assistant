@@ -47,7 +47,9 @@ castling rights, `e3` as the en passant target, and both move counters.
 
 The adapter reads that attribute directly and validates the complete value. The
 `fen` value stays independent from board orientation; the fixture includes the
-separate `boardisflipped` attribute to guard that boundary.
+separate `boardisflipped` attribute to guard that boundary. The orientation
+reader checks both the board and the engine-panel signal, accepts boolean HTML
+attributes, and republishes a position when only the orientation changes.
 
 ## Live games
 
@@ -84,4 +86,5 @@ the current contract.
 Fixtures reproduce only the smallest relevant DOM fragment and contain no user
 or game data. Tests cover initial position, a legal live transition, joining a
 game after a move, orientation independence, route guards, backend forwarding
-and animation-state stabilization.
+and animation-state stabilization. A regression fixture also keeps the primary
+Lichess board authoritative when an unrelated mini board appears earlier in the DOM.

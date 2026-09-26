@@ -8,9 +8,11 @@ import type { MoveClassificationResponse } from "@chess-assistant/contracts";
 import { App, classificationEvidenceText } from "./App";
 
 const api = vi.hoisted(() => ({
+  analyzeCandidateReply: vi.fn(),
   analyzeEvidence: vi.fn(),
   classifyMove: vi.fn(),
   clearAnalysisHistory: vi.fn(),
+  evaluatePosition: vi.fn(),
   explainEvidence: vi.fn(),
   getAnalysisHistoryItem: vi.fn(),
   getPositionFeatures: vi.fn(),
@@ -81,7 +83,13 @@ beforeEach(() => {
       candidate_san: ["Nf3", "e4", "d4"],
     },
   ]);
+  api.analyzeCandidateReply.mockImplementation(async (request) => ({
+    ...request,
+    reply_role: request.actor === "user" ? "opponent" : "user",
+    reply: null,
+  }));
   api.getPositionFeatures.mockRejectedValue(new Error("not needed by this fixture"));
+  api.evaluatePosition.mockRejectedValue(new Error("not needed by this fixture"));
   api.getAnalysisHistoryItem.mockResolvedValue({
     analysis: {
       fen: STARTING_FEN,
@@ -310,6 +318,152 @@ describe("App integration surface", () => {
       expect(document.body.textContent).toContain("−41 cp");
     });
     expect(document.querySelector(".chessboard__square")?.getAttribute("data-square")).toBe("h1");
+    expect(document.querySelector(".eval > div")?.classList).toContain("eval__white");
+    expect(document.querySelector(".eval__side--top")?.textContent).toBe("B");
+  });
+
+  it("replaces the quick advisor score with the background objective evaluation", async () => {
+    api.analyzeEvidence.mockResolvedValue({
+      analysis: {
+        fen: STARTING_FEN,
+        actor: "user",
+        advisor_role: "user",
+        reply_role: "opponent",
+        evaluation_cp: 65,
+        evaluation_mate: null,
+        opening: null,
+        candidates: [],
+      },
+      position: undefined,
+      candidates: [],
+      repertoire: null,
+    });
+    api.evaluatePosition.mockResolvedValue({
+      fen: STARTING_FEN,
+      evaluation_cp: 20,
+      evaluation_mate: null,
+      role: "evaluator",
+    });
+
+    await act(async () => root?.render(<App />));
+    const analyze = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
+      .find((button) => button.textContent?.includes("Analisar agora"));
+    await act(async () => analyze?.click());
+
+    await vi.waitFor(() => {
+      expect(api.evaluatePosition).toHaveBeenCalledWith(STARTING_FEN);
+      expect(document.body.textContent).toContain("Avaliador · Brancas melhores");
+      expect(document.body.textContent).toContain("+0.20");
+    });
+  });
+
+  it("does not lose the evaluator when analysis starts before settings finish loading", async () => {
+    let resolveSettings!: (value: unknown) => void;
+    let resolveEvidence!: (value: unknown) => void;
+    api.getSettings.mockReturnValue(new Promise((resolve) => { resolveSettings = resolve; }));
+    api.analyzeEvidence.mockReturnValue(new Promise((resolve) => { resolveEvidence = resolve; }));
+    api.evaluatePosition.mockResolvedValue({
+      fen: STARTING_FEN,
+      evaluation_cp: 15,
+      evaluation_mate: null,
+      role: "evaluator",
+    });
+
+    await act(async () => root?.render(<App />));
+    const analyze = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
+      .find((button) => button.textContent?.includes("Analisar agora"));
+    await act(async () => analyze?.click());
+
+    await act(async () => {
+      resolveSettings({
+        stockfish_path: "stockfish",
+        maia3_available: false,
+        maia3_path: null,
+        llm_configured: false,
+        llm_model: null,
+        profiles: {
+          user: PROFILE,
+          opponent: PROFILE,
+          evaluator: { ...PROFILE, enabled: true },
+        },
+      });
+      await Promise.resolve();
+      resolveEvidence({
+        analysis: {
+          fen: STARTING_FEN,
+          actor: "user",
+          advisor_role: "user",
+          reply_role: "opponent",
+          evaluation_cp: 40,
+          evaluation_mate: null,
+          opening: null,
+          candidates: [],
+        },
+        position: undefined,
+        candidates: [],
+        repertoire: null,
+      });
+    });
+
+    await vi.waitFor(() => expect(api.evaluatePosition).toHaveBeenCalledWith(STARTING_FEN));
+  });
+
+  it("loads the selected defence with the independently configured opponent profile", async () => {
+    api.analyzeEvidence.mockResolvedValue({
+      analysis: {
+        fen: STARTING_FEN,
+        actor: "user",
+        advisor_role: "user",
+        reply_role: "opponent",
+        evaluation_cp: 22,
+        evaluation_mate: null,
+        opening: null,
+        candidates: [{
+          uci: "e2e4",
+          san: "e4",
+          score_cp: 22,
+          mate: null,
+          pv_uci: ["e2e4", "e7e5"],
+          pv_san: ["e4", "e5"],
+          replies: [],
+        }],
+      },
+      position: undefined,
+      candidates: [],
+      repertoire: null,
+    });
+    api.analyzeCandidateReply.mockResolvedValue({
+      fen: STARTING_FEN,
+      actor: "user",
+      candidate_uci: "e2e4",
+      reply_role: "opponent",
+      reply: {
+        uci: "c7c5",
+        san: "c5",
+        score_cp: 18,
+        mate: null,
+        pv_uci: ["c7c5", "g1f3"],
+        pv_san: ["c5", "Nf3"],
+      },
+    });
+
+    await act(async () => root?.render(<App />));
+    const analyze = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
+      .find((button) => button.textContent?.includes("Analisar agora"));
+    await act(async () => analyze?.click());
+
+    await vi.waitFor(() => {
+      expect(api.analyzeEvidence).toHaveBeenCalledWith(
+        expect.objectContaining({ include_replies: false }),
+      );
+      expect(api.analyzeCandidateReply).toHaveBeenCalledWith({
+        fen: STARTING_FEN,
+        actor: "user",
+        candidate_uci: "e2e4",
+      });
+      expect(document.body.textContent).toContain("Defesa calculada pelo perfil do oponente");
+      expect(document.body.textContent).toContain("c5");
+    });
   });
 
   it("runs the current position from the documented keyboard shortcut", async () => {

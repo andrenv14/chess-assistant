@@ -23,7 +23,8 @@ is running. Stop the backend before copying the database as a manual backup.
 ## Persisted data
 
 - the complete validated settings for `user`, `opponent` and `evaluator`;
-- deterministic analysis evidence, Stockfish candidates and opponent replies;
+- deterministic analysis evidence, Stockfish candidates and any opponent
+  replies present in the completed API bundle;
 - full FEN, actor, evaluation, opening and creation time for local history.
 
 The API key, LLM prompt, raw provider response and generated prose are never

@@ -194,8 +194,10 @@ h1 { margin-bottom: 0; font-size: 28px; font-weight: 720; letter-spacing: -0.035
 .eval__white { width: 100%; background: linear-gradient(180deg, #f2f3ed, #dfe3d8); transition: height 0.4s ease; }
 .eval strong { position: absolute; top: 50%; left: 50%; z-index: 2; min-width: 31px; padding: 4px 2px; border-radius: 5px; color: #11150e; background: rgba(239, 243, 232, 0.88); font-size: 10px; text-align: center; transform: translate(-50%, -50%); }
 .eval__side { position: absolute; left: 0; z-index: 2; width: 100%; color: #929b8c; font-size: 8px; font-weight: 900; text-align: center; }
-.eval__side--black { top: 5px; color: #d5d9d1; }
-.eval__side--white { bottom: 5px; color: #20241e; }
+.eval__side--top { top: 5px; }
+.eval__side--bottom { bottom: 5px; }
+.eval__side--on-black { color: #d5d9d1; }
+.eval__side--on-white { color: #20241e; }
 
 .chessboard { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); overflow: hidden; width: 100%; aspect-ratio: 1; border: 3px solid #20251e; border-radius: 8px; background: #20251e; box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42), 0 0 0 1px #53604a; }
 .chessboard__square { position: relative; display: grid; place-items: center; min-width: 0; }
@@ -314,6 +316,8 @@ input[type="number"] { width: 100%; padding: 7px 8px; font-size: 11px; }
 .replies > span { color: #8e9b84; font-size: 9px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
 .replies > div { display: grid; grid-template-columns: minmax(35px, auto) 1fr; gap: 8px; }
 .replies small { overflow: hidden; color: #899382; text-overflow: ellipsis; white-space: nowrap; }
+.replies .replies__loading { display: flex; align-items: center; gap: 8px; }
+.replies__loading .spinner { flex: 0 0 auto; }
 .insight-card, .opening-card, .human-prediction, .position-themes { border: 1px solid #34402f; border-radius: 12px; padding: 11px; background: #171d15; }
 .insight-card { display: flex; gap: 10px; }
 .insight-card__icon { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 9px; color: #1d260f; background: var(--accent); }

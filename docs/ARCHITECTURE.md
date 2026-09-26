@@ -36,7 +36,7 @@ Lichess adapter ───┘                         │
 ### Python backend
 
 - own every native engine process;
-- serialize access to an engine process;
+- serialize access to each engine process while allowing different roles to run concurrently;
 - validate all FENs and legal transitions;
 - produce objective and limited-strength analysis;
 - classify moves from consecutive snapshots;
@@ -62,6 +62,20 @@ Lichess adapter ───┘                         │
 4. Deterministic extractors identify chess facts and themes.
 5. The LLM verbalizes supplied evidence and cannot override it.
 
+## Progressive analysis path
+
+The latency-sensitive desktop request does not wait for every optional engine:
+
+1. the advisor runs one MultiPV search and returns candidates plus deterministic evidence;
+2. the selected candidate is sent to the separately configured opposite-side
+   engine, so its defence is not mislabelled as another profile's result;
+3. the full-strength evaluator updates the eval bar in the background;
+4. post-move classification uses the evaluator's own queue and therefore does
+   not block the advisor.
+
+Each role owns one native process and one lock. This preserves UCI process
+safety without recreating the former global queue between unrelated engines.
+
 ## Current scope
 
 The current milestone has a working analysis API, runtime Stockfish profiles,
@@ -74,4 +88,6 @@ backend restart through a bounded local SQLite store.
 The analysis and playable-board adapters have been verified against current
 public Lichess and Chess.com markup. They prefer complete FEN values and use a
 legality-tracked DOM reconstruction when a live board exposes pieces only.
-Packaging and installed-extension end-to-end tests remain planned.
+The packaged backend, NSIS install/uninstall path and a compiled-extension
+loopback flow are covered by repeatable host-side QA. A disposable clean-VM
+pass and Authenticode publisher certificate remain release-distribution work.

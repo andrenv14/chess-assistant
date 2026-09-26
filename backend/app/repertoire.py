@@ -139,15 +139,38 @@ def match_repertoire(fen: str) -> RepertoireKnowledge | None:
     if board.fullmove_number > 24:
         return None
 
-    if board.piece_at(chess.D4) == chess.Piece(chess.PAWN, chess.WHITE) and board.piece_at(
-        chess.F4
-    ) == chess.Piece(chess.BISHOP, chess.WHITE):
+    london_bishop = any(
+        board.piece_at(square) == chess.Piece(chess.BISHOP, chess.WHITE)
+        for square in (chess.F4, chess.G3, chess.H2)
+    )
+    london_support = (
+        board.piece_at(chess.F4) == chess.Piece(chess.BISHOP, chess.WHITE)
+        or (
+            board.piece_at(chess.E3) == chess.Piece(chess.PAWN, chess.WHITE)
+            and board.piece_at(chess.F3) == chess.Piece(chess.KNIGHT, chess.WHITE)
+        )
+    )
+    if (
+        board.piece_at(chess.D4) == chess.Piece(chess.PAWN, chess.WHITE)
+        and london_bishop
+        and london_support
+    ):
         return REPERTOIRES["london"]
 
+    sicilian_c_pawn_signature = (
+        board.piece_at(chess.C5) == chess.Piece(chess.PAWN, chess.BLACK)
+        or (
+            board.piece_at(chess.C7) is None
+            and (
+                board.piece_at(chess.D4) == chess.Piece(chess.PAWN, chess.BLACK)
+                or board.piece_at(chess.D4) == chess.Piece(chess.KNIGHT, chess.WHITE)
+            )
+        )
+    )
     if (
         board.piece_at(chess.E4) == chess.Piece(chess.PAWN, chess.WHITE)
-        and board.piece_at(chess.C5) == chess.Piece(chess.PAWN, chess.BLACK)
         and board.piece_at(chess.E6) == chess.Piece(chess.PAWN, chess.BLACK)
+        and sicilian_c_pawn_signature
     ):
         return REPERTOIRES["sicilian_e6"]
 

@@ -102,6 +102,7 @@ export function ChessBoard({
       className={`chessboard${invalid ? " chessboard--invalid" : ""}`}
       role="img"
       aria-label={invalid ? "Posição FEN inválida" : "Tabuleiro da posição atual"}
+      data-fen={fen}
       data-testid="chessboard"
     >
       {ranks.flatMap((rank, row) =>

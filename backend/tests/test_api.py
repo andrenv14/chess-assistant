@@ -7,7 +7,15 @@ from fastapi.testclient import TestClient
 from app.evidence import build_analysis_evidence
 from app.explanations import ExplanationProviderError
 from app.main import app, maia_manager, manager
-from app.models import AnalyzeResponse, MoveAnalysis, PositionExplanation, default_profiles
+from app.models import (
+    AnalyzeResponse,
+    CandidateReplyResponse,
+    MoveAnalysis,
+    PositionEvaluationResponse,
+    PositionExplanation,
+    ReplyAnalysis,
+    default_profiles,
+)
 from app.storage import LocalStore, StorageError
 
 
@@ -173,6 +181,60 @@ def test_position_features_do_not_require_an_engine() -> None:
     assert payload["strategic"]["white_bishop_pair"] is True
     assert payload["endgame"]["active"] is False
     assert payload["tactics"]["legal_move_count"] == 20
+
+
+def test_candidate_reply_endpoint_keeps_the_profile_identity(monkeypatch) -> None:
+    async def analyze_candidate_reply(request):
+        return CandidateReplyResponse(
+            fen=request.fen,
+            actor=request.actor,
+            candidate_uci=request.candidate_uci,
+            reply_role="opponent",
+            reply=ReplyAnalysis(
+                uci="c7c5",
+                san="c5",
+                score_cp=18,
+                mate=None,
+                pv_uci=["c7c5", "g1f3"],
+                pv_san=["c5", "Nf3"],
+            ),
+        )
+
+    monkeypatch.setattr(manager, "analyze_candidate_reply", analyze_candidate_reply)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/reply",
+            json={
+                "fen": chess.STARTING_FEN,
+                "actor": "user",
+                "candidate_uci": "e2e4",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["reply_role"] == "opponent"
+    assert response.json()["reply"]["san"] == "c5"
+
+
+def test_objective_evaluation_endpoint_is_separate_from_candidates(monkeypatch) -> None:
+    async def evaluate(fen):
+        return PositionEvaluationResponse(
+            fen=fen,
+            evaluation_cp=-35,
+            evaluation_mate=None,
+        )
+
+    monkeypatch.setattr(manager, "evaluate", evaluate)
+    with TestClient(app) as client:
+        response = client.post("/api/evaluation", json={"fen": chess.STARTING_FEN})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "fen": chess.STARTING_FEN,
+        "evaluation_cp": -35,
+        "evaluation_mate": None,
+        "role": "evaluator",
+    }
 
 
 def test_explanation_requires_configured_api(monkeypatch) -> None:

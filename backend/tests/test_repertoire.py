@@ -18,6 +18,25 @@ def test_matches_london_piece_signature() -> None:
     assert repertoire.side == "white"
 
 
+def test_keeps_london_after_the_normal_bishop_retreat() -> None:
+    repertoire = match_repertoire(
+        fen_after(
+            "d2d4",
+            "d7d5",
+            "g1f3",
+            "g8f6",
+            "c1f4",
+            "e7e6",
+            "e2e3",
+            "f8d6",
+            "f4g3",
+        )
+    )
+
+    assert repertoire is not None
+    assert repertoire.id == "london"
+
+
 def test_matches_e6_sicilian_and_kings_indian() -> None:
     sicilian = match_repertoire(fen_after("e2e4", "c7c5", "g1f3", "e7e6"))
     kings_indian = match_repertoire(
@@ -26,6 +45,15 @@ def test_matches_e6_sicilian_and_kings_indian() -> None:
 
     assert sicilian is not None and sicilian.id == "sicilian_e6"
     assert kings_indian is not None and kings_indian.id == "kings_indian"
+
+
+def test_keeps_sicilian_after_the_c_pawn_is_exchanged() -> None:
+    repertoire = match_repertoire(
+        fen_after("e2e4", "c7c5", "g1f3", "e7e6", "d2d4", "c5d4", "f3d4")
+    )
+
+    assert repertoire is not None
+    assert repertoire.id == "sicilian_e6"
 
 
 def test_matches_kings_indian_setup_through_reti_move_order_but_not_pirc() -> None:

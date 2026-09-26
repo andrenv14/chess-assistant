@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import AsyncExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
@@ -17,12 +18,15 @@ from app.logging_config import get_logger, position_id
 from app.models import (
     AnalyzeRequest,
     AnalyzeResponse,
+    CandidateReplyRequest,
+    CandidateReplyResponse,
     ClassifyMoveRequest,
     EngineRole,
     EngineSettings,
     MoveAnalysis,
     MoveClassificationEvidence,
     MoveClassificationResponse,
+    PositionEvaluationResponse,
     ReplyAnalysis,
     default_profiles,
 )
@@ -45,7 +49,12 @@ class StockfishManager:
         self.stockfish_path = stockfish_path
         self.profiles = default_profiles()
         self._slots: dict[EngineRole, EngineSlot] = {}
-        self._lock = asyncio.Lock()
+        # Each role owns a distinct native Stockfish process. A single global
+        # lock made the evaluator's post-move classification block the advisor
+        # even though those processes can safely work in parallel.
+        self._role_locks: dict[EngineRole, asyncio.Lock] = {
+            role: asyncio.Lock() for role in ("user", "opponent", "evaluator")
+        }
 
     @property
     def available(self) -> bool:
@@ -61,8 +70,30 @@ class StockfishManager:
                 "Stockfish not found. Set STOCKFISH_PATH in backend/.env."
             )
 
-        async with self._lock:
+        roles: set[EngineRole] = {request.actor}
+        if request.include_replies:
+            roles.add("opponent" if request.actor == "user" else "user")
+        if request.include_evaluator and self.profiles["evaluator"].enabled:
+            roles.add("evaluator")
+        async with AsyncExitStack() as stack:
+            for role in sorted(roles):
+                await stack.enter_async_context(self._role_locks[role])
             return await asyncio.to_thread(self._analyze_sync, request)
+
+    async def analyze_candidate_reply(
+        self,
+        request: CandidateReplyRequest,
+    ) -> CandidateReplyResponse:
+        if not self.available:
+            raise EngineUnavailableError(
+                "Stockfish not found. Set STOCKFISH_PATH in backend/.env."
+            )
+
+        reply_role: EngineRole = "opponent" if request.actor == "user" else "user"
+        if not self.profiles[reply_role].enabled:
+            raise EngineUnavailableError(f"engine profile '{reply_role}' is disabled")
+        async with self._role_locks[reply_role]:
+            return await asyncio.to_thread(self._analyze_candidate_reply_sync, request)
 
     async def classify_move(
         self,
@@ -75,11 +106,23 @@ class StockfishManager:
                 "Stockfish not found. Set STOCKFISH_PATH in backend/.env."
             )
 
-        async with self._lock:
+        async with self._role_locks["evaluator"]:
             return await asyncio.to_thread(self._classify_move_sync, request, is_book=is_book)
 
+    async def evaluate(self, fen: str) -> PositionEvaluationResponse:
+        if not self.available:
+            raise EngineUnavailableError(
+                "Stockfish not found. Set STOCKFISH_PATH in backend/.env."
+            )
+        if not self.profiles["evaluator"].enabled:
+            raise EngineUnavailableError("engine profile 'evaluator' is disabled")
+        async with self._role_locks["evaluator"]:
+            return await asyncio.to_thread(self._evaluate_sync, fen)
+
     async def close(self) -> None:
-        async with self._lock:
+        async with AsyncExitStack() as stack:
+            for role in ("evaluator", "opponent", "user"):
+                await stack.enter_async_context(self._role_locks[role])
             slots = list(self._slots.values())
             self._slots.clear()
             await asyncio.gather(
@@ -140,13 +183,17 @@ class StockfishManager:
         candidates = [self._move_analysis(board, info) for info in infos if info.get("pv")]
 
         if request.include_replies:
-            # MultiPV already contains the opponent's strongest response in every
-            # principal variation. Reuse that result instead of launching one
-            # additional full engine search per candidate. Besides being much
-            # faster, this keeps the displayed defence exactly aligned with the
-            # line and score the user is looking at.
+            reply_profile = self.profiles[reply_role]
+            if not reply_profile.enabled:
+                raise EngineUnavailableError(f"engine profile '{reply_role}' is disabled")
+            reply_engine = self._get_engine(reply_role)
             for candidate in candidates:
-                reply = self._principal_reply(board, candidate)
+                reply = self._calculate_reply(
+                    board,
+                    candidate.uci,
+                    reply_engine,
+                    reply_profile,
+                )
                 candidate.replies = [reply] if reply is not None else []
 
         evaluation_cp: int | None = candidates[0].score_cp if candidates else None
@@ -182,6 +229,38 @@ class StockfishManager:
             },
         )
         return response
+
+    def _analyze_candidate_reply_sync(
+        self,
+        request: CandidateReplyRequest,
+    ) -> CandidateReplyResponse:
+        started = perf_counter()
+        board = chess.Board(request.fen)
+        reply_role: EngineRole = "opponent" if request.actor == "user" else "user"
+        reply = self._calculate_reply(
+            board,
+            request.candidate_uci,
+            self._get_engine(reply_role),
+            self.profiles[reply_role],
+        )
+        logger.info(
+            "candidate_reply_completed",
+            extra={
+                "event_data": {
+                    "position_id": position_id(request.fen),
+                    "candidate": request.candidate_uci,
+                    "reply_role": reply_role,
+                    "duration_ms": round((perf_counter() - started) * 1000),
+                }
+            },
+        )
+        return CandidateReplyResponse(
+            fen=request.fen,
+            actor=request.actor,
+            candidate_uci=request.candidate_uci,
+            reply_role=reply_role,
+            reply=reply,
+        )
 
     def _classify_move_sync(
         self,
@@ -287,31 +366,49 @@ class StockfishManager:
         )
         return response
 
-    @staticmethod
-    def _principal_reply(
-        board: chess.Board,
-        candidate: MoveAnalysis,
-    ) -> ReplyAnalysis | None:
-        if len(candidate.pv_uci) < 2:
-            return None
-
-        after_candidate = board.copy(stack=False)
-        first_move = chess.Move.from_uci(candidate.pv_uci[0])
-        if first_move not in after_candidate.legal_moves:
-            return None
-        after_candidate.push(first_move)
-
-        reply_move = chess.Move.from_uci(candidate.pv_uci[1])
-        if reply_move not in after_candidate.legal_moves:
-            return None
-        return ReplyAnalysis(
-            uci=reply_move.uci(),
-            san=after_candidate.san(reply_move),
-            score_cp=candidate.score_cp,
-            mate=candidate.mate,
-            pv_uci=candidate.pv_uci[1:],
-            pv_san=candidate.pv_san[1:],
+    def _evaluate_sync(self, fen: str) -> PositionEvaluationResponse:
+        started = perf_counter()
+        board = chess.Board(fen)
+        profile = self.profiles["evaluator"]
+        raw = self._get_engine("evaluator").analyse(
+            board,
+            self._limit(profile),
+            multipv=1,
         )
+        info = self._first_info(raw)
+        evaluation_cp, evaluation_mate = self._score(info["score"])
+        logger.info(
+            "objective_evaluation_completed",
+            extra={
+                "event_data": {
+                    "position_id": position_id(fen),
+                    "duration_ms": round((perf_counter() - started) * 1000),
+                }
+            },
+        )
+        return PositionEvaluationResponse(
+            fen=fen,
+            evaluation_cp=evaluation_cp,
+            evaluation_mate=evaluation_mate,
+        )
+
+    def _calculate_reply(
+        self,
+        board: chess.Board,
+        candidate_uci: str,
+        engine: chess.engine.SimpleEngine,
+        profile: EngineSettings,
+    ) -> ReplyAnalysis | None:
+        after_candidate = board.copy(stack=False)
+        first_move = chess.Move.from_uci(candidate_uci)
+        if first_move not in after_candidate.legal_moves:
+            raise ValueError(f"candidate is not legal in the supplied position: {candidate_uci}")
+        after_candidate.push(first_move)
+        if after_candidate.is_game_over():
+            return None
+        raw = engine.analyse(after_candidate, self._limit(profile), multipv=1)
+        info = self._first_info(raw)
+        return self._reply_analysis(after_candidate, info) if info.get("pv") else None
 
     def _move_analysis(self, board: chess.Board, info: dict[str, Any]) -> MoveAnalysis:
         reply = self._reply_analysis(board, info)

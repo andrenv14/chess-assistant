@@ -1,29 +1,34 @@
 # Project status
 
-Status date: 2026-09-25. Percentages describe verified scope, not elapsed time.
+Status date: 2026-09-26. Percentages describe verified scope, not elapsed time.
 They are deliberately conservative: implementation without an automated test or
 repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
 - local analysis core: **99%**;
-- portfolio-ready release: **97%**;
-- full intended product: **95%**.
+- portfolio case and development-host release: **99%**;
+- full intended product: **96%**.
 
-The core percentage is higher because native Stockfish analysis, independent
-runtime profiles, move classification, opening lookup, deterministic evidence,
-the desktop API and both analysis/live-game readers work. Release readiness is lower
-because the Windows installer has not yet been exercised on a clean machine and
-the extension is still loaded unpacked.
+The portfolio case is complete and the local release path is reproducible on
+the development host. The remaining percentage belongs to production-grade
+external validation: a clean Windows VM, long-lived authenticated site runs,
+broader chess corpora and a real publisher certificate. Those items are not
+silently counted as done just because the demo works.
 
 ## Verified today
 
 - three independently configurable Stockfish roles and real Stockfish 19 tests;
-- eval bar data, candidates, principal variations and opponent replies;
-- one-search initial analysis: the principal opponent reply is reused from each
-  MultiPV line, the optional full-strength evaluator is not run by the default
-  UI request, and a 500 ms advisor profile completed the packaged-backend QA
-  fixture in under one second after startup;
+- eval bar data, candidates, principal variations and independently profiled opponent replies;
+- progressive analysis: the initial MultiPV request returns candidates without
+  waiting for secondary engines, the selected defence uses the other side's
+  configured Stockfish, and the optional full-strength evaluator updates the
+  bar in the background;
+- per-role engine queues: the advisor, opponent and evaluator remain serialized
+  individually but no longer block one another globally;
+- measured on the development host with 500 ms profiles: 783 ms cold and 504 ms
+  warm to three candidates, 740 ms for the first independently profiled defence,
+  and 505 ms to candidates while a 1.93 s post-move classification ran concurrently;
 - reconstruction and base classification of the played move;
 - deterministic Brilliant, Great and Miss rules with sacrifice, forcing-line
   and unique-second-choice evidence returned to the desktop;
@@ -80,7 +85,9 @@ the extension is still loaded unpacked.
 - three-column initial workspace dedicated to the SVG board, Stockfish's best
   moves/lines/centipawns, and immediately available deterministic knowledge;
 - automatic board orientation and advisor-role selection from the browser,
-  including negative centipawns presented explicitly as a Black advantage;
+  including Chess.com engine-panel flip signals, orientation-only updates, an
+  eval bar that flips with the board and negative centipawns presented explicitly
+  as a Black advantage;
 - focused London, `...c5/...e6` Sicilian (Kan/Taimanov), and King's Indian
   repertoire knowledge with plans for both sides, tactical themes, cautions and
   model lines;
@@ -109,7 +116,7 @@ the extension is still loaded unpacked.
   publisher certificate;
 - original vector application icon converted by the Windows packaging pipeline;
 
-## Required before calling it portfolio-ready
+## Remaining before calling it production-distribution ready
 
 1. Expand the successful real-provider smoke test into a fixed paid regression set
    covering tactics, strategy, endgames and forced mates.

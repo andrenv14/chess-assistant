@@ -12,10 +12,13 @@ the same time while progressively disclosing engine configuration.
    the command bar can disable this without changing any engine setting.
 3. The first Stockfish candidate is selected and drawn as an arrow on the local
    board. Hovering or focusing another candidate previews its arrow; selecting
-   it expands its principal variation, verified ideas and opponent defenses.
-4. The optional API explanation is a separate action. Deterministic Stockfish
+   it expands its principal variation and verified ideas while the independent
+   opposite-side profile calculates that candidate's defence in the background.
+4. The candidate score is useful immediately; when enabled, the full-strength
+   evaluator replaces the eval-bar score asynchronously and is named in the UI.
+5. The optional API explanation is a separate action. Deterministic Stockfish
    output is useful even when the provider is unavailable or has no credit.
-5. Completed evidence is stored locally and can be restored from history.
+6. Completed evidence is stored locally and can be restored from history.
 
 The shortcuts `Ctrl+Enter` and `Ctrl+E` run analysis and request an explanation,
 respectively. All primary actions remain available as visible buttons.
@@ -23,6 +26,8 @@ respectively. All primary actions remain available as visible buttons.
 ## Visual hierarchy
 
 - The board and eval bar form one synchronized object.
+- The eval bar flips with the board; the score itself remains explicitly from
+  White's perspective, including when negative values favor Black.
 - Candidate rank, SAN, engine score and principal variation are readable before
   expansion; secondary defenses and prose appear only for the selected move.
 - Source and runtime status use text in addition to color.

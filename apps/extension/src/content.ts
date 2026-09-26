@@ -5,13 +5,19 @@ import { PositionReader } from "./fen";
 const reader = new PositionReader();
 let lastFen: string | null = null;
 let lastSource: string | null = null;
+let lastOrientation: "white" | "black" | null = null;
 
 function publishPosition(): void {
   const position = reader.read();
   if (!position) return;
-  if (position.fen === lastFen && position.source === lastSource) return;
+  if (
+    position.fen === lastFen
+    && position.source === lastSource
+    && position.orientation === lastOrientation
+  ) return;
   lastFen = position.fen;
   lastSource = position.source;
+  lastOrientation = position.orientation;
   const event: BrowserEvent = {
     type: "position",
     fen: position.fen,

@@ -2,7 +2,14 @@
 
 import { describe, expect, it } from "vitest";
 
-import { findFen, isFen, PositionReader, sourceForHostname, sourceForLocation } from "./fen";
+import {
+  boardOrientation,
+  findFen,
+  isFen,
+  PositionReader,
+  sourceForHostname,
+  sourceForLocation,
+} from "./fen";
 
 const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -88,6 +95,37 @@ describe("sourceForHostname", () => {
     expect(sourceForLocation("lichess.org", "/a1B2c3D4/black")).toBe("lichess-live");
     expect(sourceForLocation("lichess.org", "/training")).toBeNull();
     expect(sourceForLocation("www.chess.com", "/news")).toBeNull();
+  });
+});
+
+describe("boardOrientation", () => {
+  it("reads Chess.com analysis orientation from the engine panel", () => {
+    document.body.innerHTML = `
+      <div id="board-layout-analysis"></div>
+      <div class="engine-lines" boardisflipped="true"></div>`;
+
+    expect(boardOrientation(document, "chesscom-analysis")).toBe("black");
+  });
+
+  it("treats empty Chess.com flip attributes as enabled", () => {
+    document.body.innerHTML = '<wc-chess-board class="board" flipped></wc-chess-board>';
+    expect(boardOrientation(document, "chesscom-live")).toBe("black");
+  });
+
+  it("ignores unrelated elements with a generic flipped attribute", () => {
+    document.body.innerHTML = `
+      <div class="marketing-carousel" flipped></div>
+      <wc-chess-board class="board"></wc-chess-board>`;
+
+    expect(boardOrientation(document, "chesscom-live")).toBe("white");
+  });
+
+  it("prefers the main Lichess board over unrelated mini boards", () => {
+    document.body.innerHTML = `
+      <aside><div class="cg-wrap orientation-white"></div></aside>
+      <main class="round__app__board"><div class="cg-wrap orientation-black"></div></main>`;
+
+    expect(boardOrientation(document, "lichess-live")).toBe("black");
   });
 });
 

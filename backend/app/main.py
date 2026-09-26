@@ -25,6 +25,8 @@ from app.models import (
     AnalyzeRequest,
     AnalyzeResponse,
     BrowserEvent,
+    CandidateReplyRequest,
+    CandidateReplyResponse,
     ClassifyMoveRequest,
     EngineRole,
     EngineSettings,
@@ -34,6 +36,7 @@ from app.models import (
     HumanPredictionResponse,
     MoveClassificationResponse,
     OpeningInfo,
+    PositionEvaluationResponse,
     PositionFeaturesRequest,
     PositionFeaturesResponse,
     SettingsResponse,
@@ -162,6 +165,20 @@ async def analyze_evidence(request: AnalyzeRequest) -> AnalysisEvidenceResponse:
         raise HTTPException(status_code=500, detail=f"Evidence analysis failed: {exc}") from exc
 
 
+@app.post("/api/reply", response_model=CandidateReplyResponse)
+async def analyze_candidate_reply(request: CandidateReplyRequest) -> CandidateReplyResponse:
+    """Enrich one visible candidate with the independently configured reply engine."""
+    try:
+        return await manager.analyze_candidate_reply(request)
+    except EngineUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("candidate_reply_failed")
+        raise HTTPException(status_code=500, detail="Candidate reply analysis failed") from exc
+
+
 @app.post("/api/explain", response_model=ExplainedAnalysisResponse)
 async def explain_position(request: AnalyzeRequest) -> ExplainedAnalysisResponse:
     if explanation_service is None:
@@ -261,6 +278,18 @@ async def human_prediction(request: HumanPredictionRequest) -> HumanPredictionRe
 @app.post("/api/features", response_model=PositionFeaturesResponse)
 async def position_features(request: PositionFeaturesRequest) -> PositionFeaturesResponse:
     return extract_position_features(request.fen)
+
+
+@app.post("/api/evaluation", response_model=PositionEvaluationResponse)
+async def objective_evaluation(request: PositionFeaturesRequest) -> PositionEvaluationResponse:
+    """Calculate the eval bar with the optional full-strength engine in the background."""
+    try:
+        return await manager.evaluate(request.fen)
+    except EngineUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("objective_evaluation_failed")
+        raise HTTPException(status_code=500, detail="Objective evaluation failed") from exc
 
 
 @app.get("/api/history", response_model=list[AnalysisHistorySummary])

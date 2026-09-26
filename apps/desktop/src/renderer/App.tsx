@@ -19,9 +19,11 @@ import { ChessBoard } from "./ChessBoard";
 import { KnowledgeView } from "./KnowledgeView";
 import { PositionBrief } from "./PositionBrief";
 import {
+  analyzeCandidateReply,
   analyzeEvidence,
   classifyMove,
   clearAnalysisHistory,
+  evaluatePosition,
   explainEvidence,
   getAnalysisHistoryItem,
   getPositionFeatures,
@@ -60,6 +62,10 @@ function sourceLabel(source: BrowserEvent["source"]): string {
   return "Posição manual";
 }
 
+function replyProfileLabel(role: EngineRole): string {
+  return role === "opponent" ? "do oponente" : "do seu assistente";
+}
+
 export function classificationEvidenceText(move: MoveClassificationResponse): string {
   const evidence = move.evidence;
   if (evidence.rule === "brilliant_sacrifice") {
@@ -82,16 +88,35 @@ export function classificationEvidenceText(move: MoveClassificationResponse): st
     : "O rótulo segue a perda de expectativa calculada pelo avaliador Stockfish.";
 }
 
-function EvalBar({ cp, mate }: { cp: number | null; mate: number | null }) {
+function EvalBar({
+  cp,
+  mate,
+  orientation,
+}: {
+  cp: number | null;
+  mate: number | null;
+  orientation: "white" | "black";
+}) {
   const whitePercent = evaluationToWhitePercent(cp, mate);
+  const topIsWhite = orientation === "black";
 
   return (
     <div className="eval" aria-label={`Avaliação ${formatEvaluation(cp, mate)}`}>
-      <small className="eval__side eval__side--black">P</small>
-      <div className="eval__black" style={{ height: `${100 - whitePercent}%` }} />
-      <div className="eval__white" style={{ height: `${whitePercent}%` }} />
+      <small className={`eval__side eval__side--top eval__side--on-${topIsWhite ? "white" : "black"}`}>
+        {topIsWhite ? "B" : "P"}
+      </small>
+      <div
+        className={topIsWhite ? "eval__white" : "eval__black"}
+        style={{ height: `${topIsWhite ? whitePercent : 100 - whitePercent}%` }}
+      />
+      <div
+        className={topIsWhite ? "eval__black" : "eval__white"}
+        style={{ height: `${topIsWhite ? 100 - whitePercent : whitePercent}%` }}
+      />
       <strong>{formatEvaluation(cp, mate)}</strong>
-      <small className="eval__side eval__side--white">B</small>
+      <small className={`eval__side eval__side--bottom eval__side--on-${topIsWhite ? "black" : "white"}`}>
+        {topIsWhite ? "P" : "B"}
+      </small>
     </div>
   );
 }
@@ -242,12 +267,17 @@ export function App() {
   const [status, setStatus] = useState("Conectando ao backend…");
   const [busy, setBusy] = useState(false);
   const [explaining, setExplaining] = useState(false);
+  const [replyLoading, setReplyLoading] = useState<Set<string>>(new Set());
+  const [objectiveEvaluationReady, setObjectiveEvaluationReady] = useState(false);
   const previousBrowserFen = useRef<string | null>(null);
+  const previousBrowserSource = useRef<BrowserEvent["source"] | null>(null);
   const actorRef = useRef(actor);
   const autoAnalyzeRef = useRef(autoAnalyze);
   const settingsRef = useRef<EngineSettingsResponse | null>(null);
   const analysisRequestId = useRef(0);
   const explanationRequestId = useRef(0);
+  const classificationRequestId = useRef(0);
+  const requestedReplies = useRef(new Set<string>());
   const positionThemes =
     positionFeatures && positionFeatures.fen === fen
       ? formatPositionThemes(positionFeatures)
@@ -266,6 +296,14 @@ export function App() {
   const enabledEngineCount = settings
     ? Object.values(settings.profiles).filter((profile) => profile.enabled).length
     : 0;
+  const canExplain = Boolean(
+    analysis
+    && analysis.fen === fen
+    && analysis.actor === actor
+    && positionFeatures?.fen === analysis.fen
+    && candidateEvidence.length === analysis.candidates.length
+    && settings?.llm_configured,
+  );
 
   useEffect(() => {
     actorRef.current = actor;
@@ -289,6 +327,9 @@ export function App() {
     setHoveredMove(null);
     setBusy(false);
     setExplaining(false);
+    setReplyLoading(new Set());
+    setObjectiveEvaluationReady(false);
+    requestedReplies.current.clear();
   }
 
   function changeFen(nextFen: string) {
@@ -332,7 +373,9 @@ export function App() {
       if (event.type !== "position") return;
 
       const beforeFen = previousBrowserFen.current;
+      const beforeSource = previousBrowserSource.current;
       previousBrowserFen.current = event.fen;
+      previousBrowserSource.current = event.source;
       changeFen(event.fen);
 
       if (event.source !== "manual") setSource(event.source);
@@ -341,12 +384,20 @@ export function App() {
       const detectedActor = event.orientation && turn !== event.orientation ? "opponent" : "user";
       setActor(detectedActor);
 
-      if (beforeFen && beforeFen !== event.fen && event.source !== "manual") {
+      const classifyId = ++classificationRequestId.current;
+      if (
+        beforeFen
+        && beforeFen !== event.fen
+        && beforeSource === event.source
+        && event.source !== "manual"
+      ) {
         void classifyMove({ before_fen: beforeFen, after_fen: event.fen })
-          .then(setLastMove)
+          .then((result) => {
+            if (classificationRequestId.current === classifyId) setLastMove(result);
+          })
           .catch(() => {
             logEvent("warn", "move_classification_skipped", { component: "desktop" });
-            setLastMove(null);
+            if (classificationRequestId.current === classifyId) setLastMove(null);
           });
       }
       if (autoAnalyzeRef.current && event.source !== "manual") {
@@ -362,6 +413,9 @@ export function App() {
   ) {
     const requestId = ++analysisRequestId.current;
     explanationRequestId.current += 1;
+    requestedReplies.current.clear();
+    setReplyLoading(new Set());
+    setObjectiveEvaluationReady(false);
     setBusy(true);
     setExplaining(false);
     setStatus("Analisando…");
@@ -403,7 +457,9 @@ export function App() {
         fen: targetFen,
         actor: targetActor,
         include_evaluator: false,
-        include_replies: true,
+        // Candidates are the latency-sensitive result. The independently
+        // configured reply engine enriches the selected line just afterwards.
+        include_replies: false,
       });
       if (analysisRequestId.current !== requestId) return;
       const result = bundle.analysis;
@@ -411,6 +467,27 @@ export function App() {
       setCandidateEvidence(bundle.candidates);
       setPositionFeatures(bundle.position);
       setRepertoire(bundle.repertoire);
+      // Settings may finish loading while the first engine request is in
+      // flight. Read the ref again so an immediate click at startup does not
+      // permanently skip the progressive objective evaluation.
+      const latestSettings = settingsRef.current ?? activeSettings;
+      if (latestSettings?.profiles.evaluator.enabled) {
+        void evaluatePosition(targetFen)
+          .then((evaluation) => {
+            if (analysisRequestId.current !== requestId) return;
+            setAnalysis((current) => current?.fen === evaluation.fen
+              ? {
+                  ...current,
+                  evaluation_cp: evaluation.evaluation_cp,
+                  evaluation_mate: evaluation.evaluation_mate,
+                }
+              : current);
+            setObjectiveEvaluationReady(true);
+          })
+          .catch(() => {
+            logEvent("warn", "objective_evaluation_skipped", { component: "desktop" });
+          });
+      }
       void refreshHistory();
       logEvent("info", "analysis_completed", {
         component: "desktop",
@@ -427,12 +504,11 @@ export function App() {
   }
 
   async function runExplanation() {
-    if (!analysis || analysis.fen !== fen || analysis.actor !== actor) return;
+    if (!canExplain || !analysis || !positionFeatures) return;
     const requestId = ++explanationRequestId.current;
     setExplaining(true);
     setStatus("Gerando explicação…");
     try {
-      if (!positionFeatures || positionFeatures.fen !== analysis.fen) return;
       const result = await explainEvidence({
         analysis,
         candidates: candidateEvidence,
@@ -457,6 +533,55 @@ export function App() {
   }
 
   useEffect(() => {
+    const candidate = analysis?.candidates[selectedCandidate];
+    if (!analysis || !candidate || candidate.replies.length > 0) return;
+    const key = `${analysis.fen}|${analysis.actor}|${candidate.uci}`;
+    if (requestedReplies.current.has(key)) return;
+    requestedReplies.current.add(key);
+    const positionRequestId = analysisRequestId.current;
+    setReplyLoading((current) => new Set(current).add(candidate.uci));
+
+    void analyzeCandidateReply({
+      fen: analysis.fen,
+      actor: analysis.actor,
+      candidate_uci: candidate.uci,
+    })
+      .then((result) => {
+        if (analysisRequestId.current !== positionRequestId) return;
+        const replies = result.reply ? [result.reply] : [];
+        setAnalysis((current) => {
+          if (!current || current.fen !== result.fen || current.actor !== result.actor) {
+            return current;
+          }
+          return {
+            ...current,
+            candidates: current.candidates.map((item) =>
+              item.uci === result.candidate_uci ? { ...item, replies } : item,
+            ),
+          };
+        });
+        setCandidateEvidence((current) => current.map((item) =>
+          item.uci === result.candidate_uci ? { ...item, opponent_replies: replies } : item,
+        ));
+      })
+      .catch(() => {
+        logEvent("warn", "candidate_reply_skipped", {
+          component: "desktop",
+          candidate: candidate.uci,
+        });
+      })
+      .finally(() => {
+        if (analysisRequestId.current === positionRequestId) {
+          setReplyLoading((current) => {
+            const next = new Set(current);
+            next.delete(candidate.uci);
+            return next;
+          });
+        }
+      });
+  }, [analysis, selectedCandidate]);
+
+  useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if (!event.ctrlKey) return;
       if (event.key === "Enter" && !busy) {
@@ -467,7 +592,7 @@ export function App() {
         event.key.toLowerCase() === "e" &&
         analysis?.fen === fen &&
         analysis.actor === actor &&
-        settings?.llm_configured &&
+        canExplain &&
         !explaining
       ) {
         event.preventDefault();
@@ -476,7 +601,7 @@ export function App() {
     };
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [actor, analysis, busy, explaining, fen, settings?.llm_configured]);
+  }, [actor, analysis, busy, canExplain, explaining, fen]);
 
   useEffect(() => {
     const navigateVariation = (event: KeyboardEvent) => {
@@ -613,10 +738,7 @@ export function App() {
           <button
             className="button button--secondary"
             disabled={
-              !analysis ||
-              analysis.fen !== fen ||
-              analysis.actor !== actor ||
-              !settings?.llm_configured ||
+              !canExplain ||
               explaining
             }
             onClick={() => void runExplanation()}
@@ -667,7 +789,11 @@ export function App() {
             </button>
           </div>
           <div className="board-stage">
-            <EvalBar cp={analysis?.evaluation_cp ?? null} mate={analysis?.evaluation_mate ?? null} />
+            <EvalBar
+              cp={analysis?.evaluation_cp ?? null}
+              mate={analysis?.evaluation_mate ?? null}
+              orientation={orientation}
+            />
             <ChessBoard fen={boardFen} orientation={orientation} moveUci={boardMove} />
           </div>
           <div className="board-meta">
@@ -704,7 +830,10 @@ export function App() {
             {analysis && (
               <span className="evaluation-badge" title="Avaliação sempre pela perspectiva das brancas">
                 <b>{formatEvaluation(analysis.evaluation_cp, analysis.evaluation_mate)}</b>
-                <small>{evaluationPerspective(analysis.evaluation_cp, analysis.evaluation_mate)}</small>
+                <small>
+                  {objectiveEvaluationReady ? "Avaliador" : ROLE_COPY[analysis.advisor_role].label}
+                  {" · "}{evaluationPerspective(analysis.evaluation_cp, analysis.evaluation_mate)}
+                </small>
               </span>
             )}
           </div>
@@ -907,9 +1036,17 @@ export function App() {
                       </footer>
                     </div>
                   )}
-                  {selected && move.replies.length > 0 && (
+                  {selected && (move.replies.length > 0 || replyLoading.has(move.uci)) && (
                     <div className="replies">
-                      <span>Resposta principal do oponente</span>
+                      <span>
+                        Defesa calculada pelo perfil {replyProfileLabel(analysis.reply_role)}
+                      </span>
+                      {replyLoading.has(move.uci) && move.replies.length === 0 && (
+                        <div className="replies__loading">
+                          <span className="spinner" aria-hidden="true" />
+                          <small>Calculando com a força e o limite configurados…</small>
+                        </div>
+                      )}
                       {move.replies.map((reply) => (
                         <div key={reply.uci}>
                           <b>{reply.san}</b><small>{reply.pv_san.join(" ")}</small>

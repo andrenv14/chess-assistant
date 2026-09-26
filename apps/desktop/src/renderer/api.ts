@@ -3,6 +3,8 @@ import type {
   AnalysisHistorySummary,
   AnalyzeRequest,
   AnalyzeResponse,
+  CandidateReplyRequest,
+  CandidateReplyResponse,
   ClassifyMoveRequest,
   EngineRole,
   EngineSettings,
@@ -12,6 +14,7 @@ import type {
   HumanPredictionResponse,
   HistoryClearResponse,
   MoveClassificationResponse,
+  PositionEvaluationResponse,
   PositionFeaturesResponse,
 } from "@chess-assistant/contracts";
 
@@ -61,6 +64,16 @@ export function analyzeEvidence(payload: AnalyzeRequest): Promise<AnalysisEviden
   });
 }
 
+export function analyzeCandidateReply(
+  payload: CandidateReplyRequest,
+): Promise<CandidateReplyResponse> {
+  return request("/api/reply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export function explainPosition(payload: AnalyzeRequest): Promise<ExplainedAnalysisResponse> {
   return request("/api/explain", {
     method: "POST",
@@ -101,6 +114,14 @@ export function predictHumanMoves(
 
 export function getPositionFeatures(fen: string): Promise<PositionFeaturesResponse> {
   return request("/api/features", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fen }),
+  });
+}
+
+export function evaluatePosition(fen: string): Promise<PositionEvaluationResponse> {
+  return request("/api/evaluation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fen }),

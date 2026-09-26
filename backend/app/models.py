@@ -123,6 +123,38 @@ class ReplyAnalysis(BaseModel):
     pv_san: list[str]
 
 
+class CandidateReplyRequest(BaseModel):
+    """Request the configured opponent engine's reply to one candidate.
+
+    Keeping this separate from the initial MultiPV search lets the desktop
+    render the candidate list immediately and enrich the selected line in the
+    background without pretending that the advisor PV used another profile.
+    """
+
+    fen: str
+    actor: Actor
+    candidate_uci: str
+
+    _validate_fen = field_validator("fen")(AnalyzeRequest.validate_fen.__func__)
+
+    @field_validator("candidate_uci")
+    @classmethod
+    def validate_candidate_uci(cls, value: str) -> str:
+        try:
+            chess.Move.from_uci(value)
+        except ValueError as exc:
+            raise ValueError("invalid candidate UCI") from exc
+        return value
+
+
+class CandidateReplyResponse(BaseModel):
+    fen: str
+    actor: Actor
+    candidate_uci: str
+    reply_role: EngineRole
+    reply: ReplyAnalysis | None
+
+
 class MoveAnalysis(ReplyAnalysis):
     replies: list[ReplyAnalysis] = Field(default_factory=list)
 
@@ -228,6 +260,13 @@ class PositionFeaturesRequest(BaseModel):
     fen: str
 
     _validate_fen = field_validator("fen")(AnalyzeRequest.validate_fen.__func__)
+
+
+class PositionEvaluationResponse(BaseModel):
+    fen: str
+    evaluation_cp: int | None
+    evaluation_mate: int | None
+    role: Literal["evaluator"] = "evaluator"
 
 
 class SideMaterial(BaseModel):
