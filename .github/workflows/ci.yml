@@ -101,8 +101,20 @@ jobs:
       - name: Install pinned Stockfish 19
         shell: pwsh
         run: .\scripts\install-stockfish.ps1
+      - name: Build self-contained backend
+        run: npm run package:backend
       - name: Build unsigned local installer
-        run: npm run package:win
+        shell: pwsh
+        run: |
+          $output = & npm.cmd run package:win --workspace "@chess-assistant/desktop" 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | Write-Output
+          if ($exitCode -ne 0) {
+            $message = (($output | Select-Object -Last 12) -join " | ")
+            $message = $message.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
+            Write-Output "::error title=Electron installer build failed::$message"
+            exit $exitCode
+          }
       - name: Verify packaged backend
         run: npm run smoke:packaged-backend
       - name: Install, analyze and uninstall
