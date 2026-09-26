@@ -11,6 +11,10 @@ sem depender das demais.
 
 - app desktop em Electron + React com FEN, evalbar, variantes e respostas;
 - exploração interativa das variantes no tabuleiro, lance a lance;
+- navegação em páginas React: cockpit de análise e centro de conhecimento com
+  visões próprias para panorama, tática, estratégia e finais;
+- indicadores comparativos de desenvolvimento, segurança do rei e estrutura
+  de peões, sempre separados da avaliação oficial do Stockfish;
 - backend FastAPI com Stockfish nativo;
 - perfis independentes `user`, `opponent` e `evaluator`;
 - alteração de Elo/Skill/tempo de análise sem reiniciar o app;
@@ -183,3 +187,4 @@ Exemplo de alteração de força:
 - [Testes, logs e definição de pronto](docs/ENGINEERING.md)
 - [Empacotamento e instalação Windows](docs/PACKAGING.md)
 - [Experiência desktop, responsividade e acessibilidade](docs/UX.md)
+- [Centro de conhecimento e significado dos indicadores](docs/KNOWLEDGE_UI.md)

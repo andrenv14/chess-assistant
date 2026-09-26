@@ -15,6 +15,7 @@ import { logEvent } from "@chess-assistant/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChessBoard } from "./ChessBoard";
+import { KnowledgeView } from "./KnowledgeView";
 import {
   analyzeEvidence,
   classifyMove,
@@ -38,6 +39,7 @@ import { buildVariationFrames, candidateGapLabel } from "./variation";
 
 const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const ROLES: EngineRole[] = ["user", "opponent", "evaluator"];
+type AppPage = "analysis" | "knowledge";
 const ROLE_COPY: Record<EngineRole, { label: string; description: string }> = {
   user: { label: "Seu assistente", description: "Sugere e compara seus melhores lances" },
   opponent: { label: "Defesas", description: "Calcula as respostas mais fortes do oponente" },
@@ -213,6 +215,7 @@ function ProfileEditor({
 }
 
 export function App() {
+  const [activePage, setActivePage] = useState<AppPage>("analysis");
   const [fen, setFen] = useState(INITIAL_FEN);
   const [actor, setActor] = useState<"user" | "opponent">("user");
   const [orientation, setOrientation] = useState<"white" | "black">("white");
@@ -599,6 +602,26 @@ export function App() {
         </div>
       </section>
 
+      <nav className="app-pages" aria-label="Áreas do aplicativo">
+        <button
+          className={activePage === "analysis" ? "app-pages__active" : ""}
+          onClick={() => setActivePage("analysis")}
+          aria-current={activePage === "analysis" ? "page" : undefined}
+        >
+          <span aria-hidden="true">♞</span>
+          <span><b>Análise</b><small>Lances, linhas e defesas</small></span>
+        </button>
+        <button
+          className={activePage === "knowledge" ? "app-pages__active" : ""}
+          onClick={() => setActivePage("knowledge")}
+          aria-current={activePage === "knowledge" ? "page" : undefined}
+        >
+          <span aria-hidden="true">◇</span>
+          <span><b>Conhecimento</b><small>Tática, estratégia e estrutura</small></span>
+        </button>
+      </nav>
+
+      {activePage === "analysis" ? (
       <div className="workspace">
         <section className="panel board-panel">
           <div className="panel-heading board-panel__heading">
@@ -930,6 +953,17 @@ export function App() {
           </section>
         </aside>
       </div>
+      ) : (
+        <KnowledgeView
+          analysis={analysis}
+          candidates={candidateEvidence}
+          fen={fen}
+          onAnalyze={() => void runAnalysis()}
+          onFlip={() => setOrientation((current) => current === "white" ? "black" : "white")}
+          orientation={orientation}
+          position={positionFeatures}
+        />
+      )}
     </main>
   );
 }

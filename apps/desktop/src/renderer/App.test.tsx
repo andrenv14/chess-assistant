@@ -106,6 +106,23 @@ afterEach(async () => {
 });
 
 describe("App integration surface", () => {
+  it("navigates between the analysis cockpit and the knowledge center", async () => {
+    await act(async () => root?.render(<App />));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Chess Assistant"));
+
+    const knowledgePage = Array.from(document.querySelectorAll<HTMLButtonElement>(".app-pages button"))
+      .find((button) => button.textContent?.includes("Conhecimento"));
+    await act(async () => knowledgePage?.click());
+
+    expect(document.body.textContent).toContain("CENTRO DE CONHECIMENTO");
+    expect(document.body.textContent).toContain("Desenvolvimento, segurança, estrutura");
+
+    const analysisPage = Array.from(document.querySelectorAll<HTMLButtonElement>(".app-pages button"))
+      .find((button) => button.textContent?.includes("Análise"));
+    await act(async () => analysisPage?.click());
+    expect(document.body.textContent).toContain("Pronto para analisar");
+  });
+
   it("renders persisted profiles and restores deterministic history", async () => {
     await act(async () => root?.render(<App />));
 
