@@ -6,11 +6,11 @@ portfolio release from claims that still need external production validation.
 
 ## Outcome
 
-**Go for portfolio and local demonstration.** The app has a reproducible
-Windows package, real Stockfish integration, a tested browser-to-desktop path,
-and screenshots built from the production renderer. **Not yet a signed public
-distribution:** clean-VM repetition, a publisher certificate and longer
-authenticated site runs remain explicit follow-up work.
+**Go for portfolio and complete local distribution.** The app has a
+reproducible Windows package, real Stockfish integration, a tested
+browser-to-desktop path, clean-runner installation proof and screenshots built
+from the production renderer. **Not a signed public distribution:** that final
+identity gate still requires a trusted publisher certificate.
 
 ## Findings and corrections
 
@@ -29,6 +29,10 @@ authenticated site runs remain explicit follow-up work.
 | Knowledge hierarchy | Specialized opening plans were buried in the general overview while Strategy contained only generic features. | The complete repertoire course now belongs to Strategy; Overview remains a fast position diagnosis. | React topic-placement test and production-renderer capture. |
 | Portfolio evidence | The previous capture set used only the initial position, which hid the repertoire and made tactics/endgame screens generic. | QA now captures a London position, a forced mate position and a rook ending from the production renderer. | `npm run qa:portfolio` at 100% and 150% scale. |
 | QA reliability | Electron could keep its disposable Chromium journal open during cleanup and leave a failed capture process alive. | The capture window is always destroyed, backend shutdown is bounded and cache removal is best-effort after evidence is written. | Repeated successful portfolio runs at both Windows scales. |
+| Tactical evidence | Attraction and deflection were named without proof across the continuation. | The evidence layer now replays legal PV plies and emits either motif only when the later exploitation proves the claimed target. | Positive attraction/deflection fixtures plus a truncated-PV negative control. |
+| Classification depth | The native corpus concentrated on immediate sacrifices and synthetic controls. | The Opera and Evergreen combinations add deeper historical lines and explicitly guard against both inflated brilliance and invented sacrifice. | Repeated Stockfish 19 depth-16 corpus runs. |
+| LLM regression | One live provider smoke did not cover distinct chess phases. | A fixed four-case paid matrix now validates forced mate, strategy, rook ending and Black repertoire prose without logging prompts or responses. | Four real `google/gemini-3.1-flash-lite` calls accepted by the grounding and humanization gates. |
+| Clean-machine release | Packaging and install tests had only run on the development host. | A push-only ephemeral Windows job builds, installs, analyzes, checks the extension path and uninstalls from a clean runner. | GitHub Actions `Clean Windows install and extension smoke`. |
 
 ## Measured latency
 
@@ -53,13 +57,15 @@ backend\.venv\Scripts\python.exe scripts\benchmark-engine.py
 
 ## Verified suite
 
-- Python fast suite: 121 passed, 8 native tests skipped by marker;
-- native Stockfish 19 suite: 8 passed;
+- Python fast suite: 129 passed, 10 native tests skipped by marker;
+- native Stockfish 19 suite: 10 passed;
 - desktop Vitest: 49 passed;
 - extension Vitest: 26 passed;
-- TypeScript contracts: covered by their own workspace suite and typecheck;
+- TypeScript contracts: 2 passed;
+- total automated tests: 216;
 - Ruff, desktop/extension typechecks and production builds;
 - packaged backend, installed renderer/backend and compiled-extension smoke paths;
+- fixed paid-provider matrix: 4/4 real cases accepted;
 - portfolio render at Windows 100% and 150% scale.
 
 The repository scan found no literal OpenRouter key, and `backend/.env` is not
@@ -81,7 +87,8 @@ present in the checkout. The environment example contains placeholders only.
 
 ## Release gate
 
-The portfolio package is acceptable when the full checks, native integration,
-installer smoke, live-extension smoke and both portfolio scales pass against the
-same commit. A signed public release additionally requires clean-VM repetition
-and the publisher certificate.
+The complete local package is acceptable when the full checks, native
+integration, clean-runner installer smoke, live-extension smoke and both
+portfolio scales pass against the same commit. A signed public release
+additionally requires the publisher certificate; no application-code task can
+substitute for that external identity proof.

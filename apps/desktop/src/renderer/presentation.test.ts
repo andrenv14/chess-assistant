@@ -187,6 +187,8 @@ describe("formatPlanHint", () => {
       newly_pinned_targets: ["c6"],
       newly_relative_pinned_targets: ["d5"],
       discovered_attack_targets: ["a8"],
+      attraction_targets: ["h8"],
+      deflection_targets: ["d7"],
       newly_attacked_undefended_targets: ["d6"],
       is_castling: false,
       promotion_piece: null,
@@ -213,6 +215,12 @@ describe("formatPlanHint", () => {
     expect(formatPlanHint("relative_pin_piece", facts)).toBe("cravar relativamente d5");
     expect(formatPlanHint("discovered_attack", facts)).toBe(
       "abrir ataque descoberto contra a8",
+    );
+    expect(formatPlanHint("attract_piece", facts)).toBe(
+      "atrair uma peça para h8 na variante calculada",
+    );
+    expect(formatPlanHint("deflect_defender", facts)).toBe(
+      "desviar o defensor de d7 na variante calculada",
     );
     expect(formatPlanHint("attack_loose_piece", facts)).toBe("atacar d6 sem defesa");
     expect(formatPlanHint("remove_defender", facts)).toBe("remover o defensor de f6");

@@ -105,11 +105,15 @@ Before publishing an installer:
 6. uninstall the desktop app and confirm user data behavior is documented for
    that release.
 
-The automated `npm run qa:installer` check now performs items 2, 3 and 6 in an
-isolated data directory on the current Windows host. It also connects to the
-installed Electron renderer through its temporary debugging port and requires
-the React interface to mount from `file://` assets. A disposable VM remains the
-final independent clean-machine check.
+The automated `npm run qa:installer` check performs items 2, 3 and 6 in an
+isolated data directory. It also connects to the installed Electron renderer
+through its temporary debugging port and requires the React interface to mount
+from `file://` assets. On every push to `main`, the `Clean Windows install and
+extension smoke` CI job repeats the complete unsigned build, packaged-backend
+analysis, install/uninstall and compiled-extension path on a fresh hosted
+Windows VM. Authenticated third-party-site sessions remain a separate live
+compatibility check because repository CI never receives personal browser
+credentials.
 
 The browser extension remains a separate unpacked artifact in this milestone;
 loading or publishing it is intentionally not hidden inside the desktop

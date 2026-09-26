@@ -45,6 +45,8 @@ PLAN_GROUNDING_LABELS: dict[str, str] = {
     "pin_piece": "cria uma cravada contra o rei",
     "relative_pin_piece": "cria uma cravada relativa",
     "discovered_attack": "abre um ataque descoberto",
+    "attract_piece": "comprova uma atração na variante calculada",
+    "deflect_defender": "desvia um defensor e explora imediatamente o alvo na variante",
     "attack_loose_piece": "ataca uma peça sem defesa",
     "capture_or_exchange_material": "captura ou troca material",
     "secure_king": "coloca o rei em segurança",

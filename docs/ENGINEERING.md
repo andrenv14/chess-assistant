@@ -12,15 +12,17 @@ npm run build
 npm run smoke:desktop-backend
 
 cd backend
-.venv\Scripts\python.exe -m ruff check app tests
+.venv\Scripts\python.exe -m ruff check app tests scripts
 .venv\Scripts\python.exe -m pytest
 ```
 
 The GitHub Actions workflow repeats the TypeScript and fast Python checks on
 every push to `main` and on every pull request. It uses read-only repository
-permissions, cancels superseded runs and enforces a 15-minute timeout per job.
-Native Stockfish integration stays in the explicit local command below because
-the fast CI job does not download an engine binary.
+permissions, cancels superseded runs and enforces bounded timeouts. A Windows
+job installs pinned Stockfish 19 and runs the native corpus. Pushes to `main`
+also build the installer on a fresh hosted Windows VM, install it into an
+isolated directory, analyze with the embedded engine, uninstall it and exercise
+the compiled extension through its real service worker and local WebSocket.
 
 The desktop/backend smoke test compiles the Electron main process, launches the
 real local Python service, requires the application-specific health identity and
@@ -37,6 +39,20 @@ backend\.venv\Scripts\python.exe scripts\benchmark-engine.py
 
 It emits JSON, does not read the LLM credential and is evidence for comparison,
 not a hardware-independent performance promise.
+
+The fixed four-position LLM matrix can validate its chess fixtures without
+provider spend, or run the paid structured-output calls when credentials are
+present:
+
+```powershell
+cd backend
+.venv\Scripts\python.exe scripts\regression_llm.py --dry-run
+.venv\Scripts\python.exe scripts\regression_llm.py
+```
+
+The manual `Paid LLM regression` workflow runs the same matrix using the
+`OPENROUTER_API_KEY` repository secret. It emits acceptance metadata rather
+than prompts or prose.
 
 ## Testing strategy
 

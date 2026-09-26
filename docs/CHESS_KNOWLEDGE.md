@@ -33,6 +33,8 @@ position. The resulting facts include:
 
 - check, mate, capture, promotion and castling;
 - forks, absolute and relative pins, discovered attacks and loose-piece attacks;
+- attraction and deflection only when three legal principal-variation plies
+  show the forcing move, displacement and immediate tactical exploitation;
 - passed-pawn creation/advance and pawn-shield improvement;
 - outpost creation/occupation;
 - rook activation on an open file or seventh rank;
@@ -55,3 +57,9 @@ must be supported by a friendly pawn and immune to enemy pawn attacks; a
 defender-removal label requires the captured piece to have been the last enemy
 defender of a target that remains attacked. Narrow rules produce fewer labels
 than prose-first heuristics, but make each displayed claim testable.
+
+Attraction and deflection are intentionally sequence-based exceptions to the
+single-move rules. A truncated line never receives either label. Attraction
+requires the opponent to take the offered piece on its destination and the next
+move to exploit the attracted piece; deflection requires a displaced defender
+to abandon the exact target captured on the next ply.

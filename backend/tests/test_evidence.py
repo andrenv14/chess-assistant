@@ -4,15 +4,23 @@ from app.evidence import build_analysis_evidence
 from app.models import AnalyzeResponse, MoveAnalysis
 
 
-def candidate(board: chess.Board, uci: str) -> MoveAnalysis:
+def candidate(board: chess.Board, uci: str, pv_uci: list[str] | None = None) -> MoveAnalysis:
     move = chess.Move.from_uci(uci)
+    pv_uci = pv_uci or [uci]
+    replay = board.copy(stack=False)
+    pv_san: list[str] = []
+    for pv_move_uci in pv_uci:
+        pv_move = chess.Move.from_uci(pv_move_uci)
+        assert pv_move in replay.legal_moves
+        pv_san.append(replay.san(pv_move))
+        replay.push(pv_move)
     return MoveAnalysis(
         uci=uci,
         san=board.san(move),
         score_cp=20,
         mate=None,
-        pv_uci=[uci],
-        pv_san=[board.san(move)],
+        pv_uci=pv_uci,
+        pv_san=pv_san,
         replies=[],
     )
 
@@ -26,6 +34,18 @@ def response(board: chess.Board, *moves: str) -> AnalyzeResponse:
         evaluation_cp=20,
         evaluation_mate=None,
         candidates=[candidate(board, move) for move in moves],
+    )
+
+
+def response_with_pv(board: chess.Board, pv_uci: list[str]) -> AnalyzeResponse:
+    return AnalyzeResponse(
+        fen=board.fen(),
+        actor="user",
+        advisor_role="user",
+        reply_role="opponent",
+        evaluation_cp=20,
+        evaluation_mate=None,
+        candidates=[candidate(board, pv_uci[0], pv_uci)],
     )
 
 
@@ -199,3 +219,37 @@ def test_quiet_move_can_interfere_with_a_sliding_attack() -> None:
 
     assert evidence.candidates[0].facts.interfered_attack_targets == ["a1"]
     assert "interfere_attack" in evidence.candidates[0].plan_hints
+
+
+def test_pv_proves_attraction_only_after_the_forced_capture_and_followup() -> None:
+    board = chess.Board("6k1/8/8/8/8/8/8/K3Q2R w - - 0 1")
+    analysis = response_with_pv(board, ["h1h8", "g8h8", "e1e8"])
+
+    evidence = build_analysis_evidence(analysis).candidates[0]
+
+    assert evidence.facts.attraction_targets == ["h8"]
+    assert evidence.facts.deflection_targets == []
+    assert "attract_piece" in evidence.plan_hints
+
+
+def test_pv_proves_deflection_when_the_displaced_piece_abandons_a_target() -> None:
+    board = chess.Board("3r3k/3q4/8/8/8/8/8/K2QR3 w - - 0 1")
+    analysis = response_with_pv(board, ["e1e8", "d8e8", "d1d7"])
+
+    evidence = build_analysis_evidence(analysis).candidates[0]
+
+    assert evidence.facts.attraction_targets == []
+    assert evidence.facts.deflection_targets == ["d7"]
+    assert "deflect_defender" in evidence.plan_hints
+
+
+def test_truncated_pv_never_claims_a_multi_ply_tactical_sequence() -> None:
+    board = chess.Board("3r3k/3q4/8/8/8/8/8/K2QR3 w - - 0 1")
+    analysis = response_with_pv(board, ["e1e8", "d8e8"])
+
+    evidence = build_analysis_evidence(analysis).candidates[0]
+
+    assert evidence.facts.attraction_targets == []
+    assert evidence.facts.deflection_targets == []
+    assert "attract_piece" not in evidence.plan_hints
+    assert "deflect_defender" not in evidence.plan_hints

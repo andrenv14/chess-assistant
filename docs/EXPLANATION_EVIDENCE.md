@@ -15,6 +15,8 @@ candidate with deterministic move facts.
   non-king piece on the same sliding-piece ray;
 - discovered attacks opened for another bishop, rook or queen, with the target
   square recorded explicitly;
+- attraction and deflection sequences proven across the first three legal
+  plies of the Stockfish principal variation, with the exploited square stored;
 - newly attacked enemy knights, bishops, rooks or queens without a same-color
   defender;
 - castling;
@@ -46,6 +48,12 @@ excludes attacks made directly by the moved piece. These facts identify
 geometry; Stockfish still decides whether the tactic is sound.
 `attack_loose_piece` uses the same conservative high-value piece set and does
 not label an undefended pawn as a loose piece.
+
+`attract_piece` is emitted only when the response captures the offered piece on
+its destination and the next PV move checks or captures in a way that exploits
+the attracted piece. `deflect_defender` requires the displaced piece to have
+defended the exact target captured by the third ply. A short or illegal PV makes
+no multi-ply tactical claim.
 
 Maia output is never an input to this endpoint. Maia cannot add, remove, rerank
 or change the evaluation of Stockfish candidates.

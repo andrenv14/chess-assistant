@@ -96,6 +96,8 @@ def describe_candidate(
         newly_pinned_targets=[],
         newly_relative_pinned_targets=[],
         discovered_attack_targets=[],
+        attraction_targets=[],
+        deflection_targets=[],
         newly_attacked_undefended_targets=[],
         is_castling=board.is_castling(move),
         promotion_piece=chess.piece_name(move.promotion) if move.promotion else None,
@@ -231,6 +233,11 @@ def describe_candidate(
     facts.removed_defender_targets = _removed_defender_targets(board, after, move, mover)
     facts.interfered_attack_targets = _interfered_attack_targets(board, after, move, mover)
     facts.connects_rooks = not _rooks_connected(board, mover) and _rooks_connected(after, mover)
+    facts.attraction_targets, facts.deflection_targets = _sequence_tactical_targets(
+        board,
+        candidate.pv_uci,
+        mover,
+    )
 
     return CandidateEvidence(
         rank=rank,
@@ -450,6 +457,91 @@ def _rooks_connected(board: chess.Board, color: chess.Color) -> bool:
     )
 
 
+def _sequence_tactical_targets(
+    board: chess.Board,
+    pv_uci: list[str],
+    mover: chess.Color,
+) -> tuple[list[str], list[str]]:
+    """Prove attraction/deflection only when the published PV exploits it.
+
+    Single-position geometry is not enough for these motifs. The first three
+    legal plies must show the offer or forcing move, the opponent displacement,
+    and an immediate check/capture that uses the displaced piece or abandoned
+    target. Truncated or illegal engine lines deliberately produce no label.
+    """
+    if len(pv_uci) < 3:
+        return [], []
+
+    replay = board.copy(stack=False)
+    moves: list[chess.Move] = []
+    for uci in pv_uci[:3]:
+        try:
+            move = chess.Move.from_uci(uci)
+        except ValueError:
+            return [], []
+        if move not in replay.legal_moves:
+            return [], []
+        moves.append(move)
+        replay.push(move)
+
+    first, reply, followup = moves
+    after_first = board.copy(stack=False)
+    first_forces_check = after_first.gives_check(first)
+    after_first.push(first)
+    reply_piece = after_first.piece_at(reply.from_square)
+    if reply_piece is None or reply_piece.color == mover:
+        return [], []
+
+    offered_piece = after_first.piece_at(first.to_square)
+    reply_captures_offer = bool(
+        offered_piece is not None
+        and offered_piece.color == mover
+        and after_first.is_capture(reply)
+        and reply.to_square == first.to_square
+    )
+    first_attacks_reply = reply.from_square in after_first.attacks(first.to_square)
+    forcing_displacement = first_forces_check or first_attacks_reply or reply_captures_offer
+
+    defended_targets = {
+        square
+        for square in after_first.attacks(reply.from_square)
+        if (piece := after_first.piece_at(square)) is not None
+        and piece.color == reply_piece.color
+        and piece.piece_type != chess.KING
+    }
+
+    after_reply = after_first.copy(stack=False)
+    after_reply.push(reply)
+    followup_is_capture = after_reply.is_capture(followup)
+    followup_gives_check = after_reply.gives_check(followup)
+
+    attraction_targets: list[str] = []
+    exploits_attracted_piece = (
+        reply_piece.piece_type == chess.KING
+        or (followup_is_capture and followup.to_square == reply.to_square)
+    )
+    if (
+        reply_captures_offer
+        and forcing_displacement
+        and exploits_attracted_piece
+        and (followup_is_capture or followup_gives_check)
+    ):
+        attraction_targets.append(chess.square_name(reply.to_square))
+
+    deflection_targets: list[str] = []
+    displaced_piece = after_reply.piece_at(reply.to_square)
+    if (
+        forcing_displacement
+        and followup_is_capture
+        and followup.to_square in defended_targets
+        and displaced_piece is not None
+        and followup.to_square not in after_reply.attacks(reply.to_square)
+    ):
+        deflection_targets.append(chess.square_name(followup.to_square))
+
+    return attraction_targets, deflection_targets
+
+
 def _plan_hints(facts: MoveFacts) -> list[PlanHint]:
     hints: list[PlanHint] = []
     if facts.gives_checkmate:
@@ -464,6 +556,10 @@ def _plan_hints(facts: MoveFacts) -> list[PlanHint]:
         hints.append("relative_pin_piece")
     if facts.discovered_attack_targets:
         hints.append("discovered_attack")
+    if facts.attraction_targets:
+        hints.append("attract_piece")
+    if facts.deflection_targets:
+        hints.append("deflect_defender")
     if facts.newly_attacked_undefended_targets:
         hints.append("attack_loose_piece")
     if facts.is_capture:

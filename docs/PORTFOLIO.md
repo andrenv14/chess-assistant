@@ -116,8 +116,10 @@ determinísticas e do motor continuam disponíveis.
 ## Engenharia e qualidade
 
 - monorepo TypeScript/Python com contratos compartilhados;
-- 121 testes rápidos de backend e 8 integrações com Stockfish real;
-- 49 testes do desktop e 26 da extensão;
+- 129 testes rápidos de backend e 10 integrações com Stockfish real;
+- 49 testes do desktop, 26 da extensão e 2 dos contratos compartilhados;
+- 216 testes automatizados no total, além dos smokes do pacote, instalador e
+  extensão compilada;
 - logs JSON sem FEN completa, prompts ou credenciais;
 - SQLite local para perfis e histórico limitado;
 - builds e typechecks reproduzíveis em CI;
@@ -147,9 +149,9 @@ mantém também o fluxo completo de desenvolvimento e todos os comandos de QA.
 
 ## Limites assumidos
 
-O case está pronto para demonstração local, mas não é apresentado como uma
-distribuição comercial assinada. Mudanças futuras no DOM dos sites exigem
-manutenção dos adaptadores; a primeira entrada no meio de uma partida tem
-limitações históricas documentadas para direitos de roque; o instalador ainda
-precisa de um certificado Authenticode real e de repetição em VM limpa antes de
-uma publicação ampla.
+O case e a distribuição local não assinada estão completos e são verificados
+em Windows limpo pela CI. Ele não é apresentado como uma distribuição comercial
+assinada: isso ainda exige um certificado Authenticode de um emissor confiável.
+Mudanças futuras no DOM dos sites exigirão manutenção dos adaptadores, e a
+primeira entrada no meio de uma partida mantém as limitações históricas
+documentadas para reconstruir direitos de roque apenas a partir das peças.

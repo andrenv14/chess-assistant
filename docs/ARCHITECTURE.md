@@ -89,5 +89,6 @@ The analysis and playable-board adapters have been verified against current
 public Lichess and Chess.com markup. They prefer complete FEN values and use a
 legality-tracked DOM reconstruction when a live board exposes pieces only.
 The packaged backend, NSIS install/uninstall path and a compiled-extension
-loopback flow are covered by repeatable host-side QA. A disposable clean-VM
-pass and Authenticode publisher certificate remain release-distribution work.
+loopback flow are covered by repeatable host-side QA and by an ephemeral clean
+Windows CI runner. A trusted Authenticode publisher certificate is the only
+remaining external gate for signed public distribution.

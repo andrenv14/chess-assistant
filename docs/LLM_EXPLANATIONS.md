@@ -93,3 +93,23 @@ then run this command from `backend`:
 The credential is read only from the environment. The script prints the final
 validated explanation; structured logs contain only a hashed position id,
 durations, model/gateway names and token counts.
+
+## Fixed paid regression matrix
+
+`backend/scripts/regression_llm.py` extends the one-position smoke into four
+stable cases: forced mate, London strategy, rook endgame and the Black side of
+the `...c5/...e6` Sicilian. Each case runs native Stockfish, independently
+profiled replies, deterministic evidence, structured output and all production
+grounding checks. It additionally rejects internal IDs, snake_case vocabulary
+and implausibly empty prose.
+
+Validate the chess fixtures without spending API credit:
+
+```powershell
+.venv\Scripts\python.exe scripts\regression_llm.py --dry-run
+```
+
+Remove `--dry-run` for the four paid requests. Individual cases can be selected
+with repeated `--case <id>` arguments. GitHub's manual `Paid LLM regression`
+workflow uses the `OPENROUTER_API_KEY` repository secret and never stores the
+key, prompt, response or generated prose as an artifact.

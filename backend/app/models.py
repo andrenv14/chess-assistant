@@ -32,6 +32,8 @@ PlanHint = Literal[
     "pin_piece",
     "relative_pin_piece",
     "discovered_attack",
+    "attract_piece",
+    "deflect_defender",
     "attack_loose_piece",
     "capture_or_exchange_material",
     "secure_king",
@@ -390,6 +392,8 @@ class MoveFacts(BaseModel):
     newly_pinned_targets: list[str]
     newly_relative_pinned_targets: list[str] = Field(default_factory=list)
     discovered_attack_targets: list[str] = Field(default_factory=list)
+    attraction_targets: list[str] = Field(default_factory=list)
+    deflection_targets: list[str] = Field(default_factory=list)
     newly_attacked_undefended_targets: list[str]
     is_castling: bool
     promotion_piece: str | None

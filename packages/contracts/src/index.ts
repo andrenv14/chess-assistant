@@ -111,6 +111,8 @@ export type PlanHint =
   | "pin_piece"
   | "relative_pin_piece"
   | "discovered_attack"
+  | "attract_piece"
+  | "deflect_defender"
   | "attack_loose_piece"
   | "capture_or_exchange_material"
   | "secure_king"
@@ -313,6 +315,8 @@ export interface MoveFacts {
   newly_pinned_targets: string[];
   newly_relative_pinned_targets: string[];
   discovered_attack_targets: string[];
+  attraction_targets: string[];
+  deflection_targets: string[];
   newly_attacked_undefended_targets: string[];
   is_castling: boolean;
   promotion_piece: string | null;

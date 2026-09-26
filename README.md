@@ -9,7 +9,7 @@ sem depender das demais.
 
 ![Demonstração do Chess Assistant](docs/assets/portfolio/chess-assistant-demo.gif)
 
-## Primeiro marco
+## Escopo concluído
 
 - app desktop em Electron + React com FEN, evalbar, variantes e respostas;
 - exploração interativa das variantes no tabuleiro, lance a lance;
@@ -147,6 +147,7 @@ npm run qa:installer       # instala, valida renderer/backend e desinstala
 npm run qa:live-extension  # extensão compilada → WebSocket → backend
 npm run qa:portfolio       # screenshots do Electron e Stockfish reais
 npm run verify:signature   # inspeciona Authenticode do instalador
+backend\.venv\Scripts\python.exe backend\scripts\regression_llm.py --dry-run
 ```
 
 A demonstração visual pronta para o portfólio está em
@@ -154,7 +155,7 @@ A demonstração visual pronta para o portfólio está em
 O case completo, com decisões, arquitetura, métricas e limites honestos, está
 em [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md).
 
-## API do primeiro marco
+## API local
 
 - `GET /health` — estado do backend e disponibilidade do Stockfish;
 - `GET /api/settings` — perfis atuais;
@@ -187,15 +188,13 @@ Exemplo de alteração de força:
 }
 ```
 
-## Próximos marcos
+## Manutenção e distribuição pública
 
-1. validar a extensão compilada junto do desktop nas páginas de análise do
-   Lichess e Chess.com;
-2. ampliar os classificadores e a regressão de táticas, estratégia, finais e
-   classificação pós-lance;
-3. criar testes de interface e um fluxo curto de demonstração;
-4. empacotar desktop, backend e Stockfish em uma instalação Windows
-   reproduzível.
+O escopo local e de portfólio está completo. Os próximos trabalhos são de ciclo
+de vida: acompanhar mudanças futuras no DOM do Chess.com/Lichess e, se houver
+distribuição pública, fornecer um certificado Authenticode confiável ao workflow
+de release já preparado. Maia-3 permanece uma comparação humana opcional e não
+faz parte do caminho crítico do Stockfish.
 
 ## Documentação de engenharia
 

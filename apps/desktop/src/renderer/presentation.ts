@@ -41,6 +41,8 @@ const PLAN_LABELS: Record<PlanHint, string> = {
   pin_piece: "cravar uma peça contra o rei",
   relative_pin_piece: "cravar uma peça contra outra de maior valor",
   discovered_attack: "abrir um ataque descoberto",
+  attract_piece: "atrair uma peça para uma casa taticamente vulnerável",
+  deflect_defender: "desviar um defensor da sua função",
   attack_loose_piece: "atacar uma peça sem defesa",
   capture_or_exchange_material: "capturar ou trocar material",
   secure_king: "colocar o rei em segurança",
@@ -198,6 +200,12 @@ export function formatPlanHint(hint: PlanHint, facts?: MoveFacts): string {
   }
   if (hint === "discovered_attack" && facts?.discovered_attack_targets.length) {
     return `abrir ataque descoberto contra ${formatSquares(facts.discovered_attack_targets)}`;
+  }
+  if (hint === "attract_piece" && facts?.attraction_targets.length) {
+    return `atrair uma peça para ${formatSquares(facts.attraction_targets)} na variante calculada`;
+  }
+  if (hint === "deflect_defender" && facts?.deflection_targets.length) {
+    return `desviar o defensor de ${formatSquares(facts.deflection_targets)} na variante calculada`;
   }
   if (hint === "attack_loose_piece" && facts?.newly_attacked_undefended_targets.length) {
     return `atacar ${formatSquares(facts.newly_attacked_undefended_targets)} sem defesa`;

@@ -6,15 +6,17 @@ repeatable setup procedure does not count as complete.
 
 ## Current readiness
 
-- local analysis core: **99%**;
-- portfolio case and development-host release: **99%**;
-- full intended product: **96%**.
+- verified local product scope: **100%**;
+- portfolio case: **100%**;
+- clean unsigned Windows release engineering: **100%**;
+- signed public distribution: **external gate, not a code-completeness percentage**.
 
-The portfolio case is complete and the local release path is reproducible on
-the development host. The remaining percentage belongs to production-grade
-external validation: a clean Windows VM, long-lived authenticated site runs,
-broader chess corpora and a real publisher certificate. Those items are not
-silently counted as done just because the demo works.
+The 100% scope means the repository implements, tests, documents and packages
+the complete local assistant described in this project. Clean-machine build,
+installation, native analysis, browser-extension transport and uninstall are
+enforced in an ephemeral Windows CI runner. Commercial code signing remains a
+publisher-identity purchase and cannot be completed honestly by adding more
+application code.
 
 ## Verified today
 
@@ -32,8 +34,11 @@ silently counted as done just because the demo works.
 - reconstruction and base classification of the played move;
 - deterministic Brilliant, Great and Miss rules with sacrifice, forcing-line
   and unique-second-choice evidence returned to the desktop;
-- fixed Stockfish 19 classification corpus covering two celebrated sacrifices,
-  a sound non-best sacrifice and a decorative-sacrifice false-positive guard;
+- fixed Stockfish 19 classification corpus covering the Réti–Tartakower,
+  Lasker–Bauer, Colle–O'Hanlon, Opera and Evergreen combinations, plus synthetic
+  unique-defence and missed-mate controls;
+- multi-ply attraction and deflection evidence proved by legal principal
+  variations, with target squares and truncated-line false-positive guards;
 - 3,815 local Lichess opening positions;
 - deterministic position and candidate facts;
 - deterministic mate-in-one, fork, absolute-pin and loose-piece motifs with
@@ -59,6 +64,9 @@ silently counted as done just because the demo works.
   plus latest-position queuing and replay after reconnect;
 - live OpenRouter/OpenResponses request with structured-output and Stockfish
   order enforcement (`google/gemini-3.1-flash-lite`);
+- fixed paid-provider regression matrix covering a forced mate, London
+  strategy, a rook ending and the Black side of the `...e6` Sicilian; all four
+  real responses passed chess-fixture and humanized-output validation;
 - evidence-cited LLM output: position and candidate prose must reference a
   server-built grounding catalogue, and the named critical reply must match the
   strongest configured Stockfish response; the compact grounded prompt passed
@@ -102,6 +110,10 @@ silently counted as done just because the demo works.
 - local Ruff, Pytest, Vitest, typecheck and production builds;
 - GitHub Actions checks for every push to `main` and every pull request,
   including a Windows job with the pinned native Stockfish regression corpus;
+- clean ephemeral Windows CI that builds the installer, runs the packaged
+  backend, silently installs it, performs real native analysis, checks the
+  React renderer and opening catalogue, uninstalls it and then verifies the
+  compiled extension path for both supported sites;
 - self-contained Windows backend with embedded Python, opening catalogue and
   the official Stockfish binary, license and corresponding source;
 - reproducible unpacked Electron and NSIS installer builds, plus a packaged
@@ -116,17 +128,14 @@ silently counted as done just because the demo works.
   publisher certificate;
 - original vector application icon converted by the Windows packaging pipeline;
 
-## Remaining before calling it production-distribution ready
+## External lifecycle work after 100%
 
-1. Expand the successful real-provider smoke test into a fixed paid regression set
-   covering tactics, strategy, endgames and forced mates.
-2. Repeat the successful installed-host checks in a disposable clean Windows
-   VM and exercise authenticated bot, friend and matchmaking routes on both
-   sites as their DOM changes over time.
-3. Add attraction/deflection sequences that are proved across multiple PV plies
-   and expand the native corpus with more depth-sensitive historical positions.
-4. Supply a trusted Authenticode publisher certificate to the prepared release
-   workflow. Local self-signing is deliberately not counted as completion.
-
-Maia-3 is outside the critical path. It remains optional and can never change
-Stockfish candidates, evaluation, rank or post-move classification.
+1. Supply a trusted Authenticode publisher certificate when the project is to
+   be distributed publicly under a verified publisher identity. The workflow
+   and strict signature verifier are already prepared.
+2. Keep the Chess.com and Lichess adapters maintained when either third party
+   changes private DOM markup. This is ongoing compatibility work, not missing
+   functionality in the current supported contracts.
+3. Optionally experiment with Maia-3 as an additional human-move comparison.
+   It remains outside the critical path and can never change Stockfish
+   candidates, evaluation, rank or post-move classification.
