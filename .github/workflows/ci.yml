@@ -110,7 +110,10 @@ jobs:
           $exitCode = $LASTEXITCODE
           $output | Write-Output
           if ($exitCode -ne 0) {
-            $message = (($output | Select-Object -Last 12) -join " | ")
+            $diagnostic = @($output | Where-Object {
+              "$_" -match "error|failed|cannot|could not|not found|ENOENT|invalid|icon|sign|cause"
+            }) + @($output | Select-Object -Last 40)
+            $message = (($diagnostic | Select-Object -Unique) -join " | ")
             $message = $message.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
             Write-Output "::error title=Electron installer build failed::$message"
             exit $exitCode
